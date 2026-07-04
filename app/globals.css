@@ -2,6 +2,18 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@font-face {
+  font-family: "BigVestaRegular";
+  src: url("/fonts/BigVesta-Arabic-Regular.ttf");
+  font-weight: normal;
+  font-display: swap;
+}
+@custom-variant dark (&:is(.dark *));
+/* الخط الافتراضي للموقع */
+* {
+  font-family: "BigVestaRegular", sans-serif;
+  font-weight: 500;
+}
 
 @theme inline {
   --color-background: var(--background);
