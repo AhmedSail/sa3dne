@@ -1,0 +1,8 @@
+/**
+ * Drizzle schema barrel.
+ *
+ * Re-exports every table and enum so `import * as schema from "@/db/schema"`
+ * gives the drizzle client and better-auth adapter the full schema.
+ */
+export * from "./enums";
+export * from "./auth";
