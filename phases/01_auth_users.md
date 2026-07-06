@@ -1,9 +1,11 @@
 # Phase 01 - Authentication, Authorization, and User Management
 
 ## Objective
+
 Implement secure login, logout, role-based routing, server-side authorization, password changing, and admin user management.
 
 ## Scope
+
 - User model.
 - Role model or enum.
 - User status active/inactive.
@@ -21,6 +23,7 @@ Implement secure login, logout, role-based routing, server-side authorization, p
 - Basic audit-ready service hooks.
 
 ## Roles
+
 - SYSTEM_ADMIN
 - CAMP_MANAGER
 - ORG_REPRESENTATIVE
@@ -29,6 +32,7 @@ Implement secure login, logout, role-based routing, server-side authorization, p
 Beneficiary is public and does not need a full system account in MVP.
 
 ## Core Models
+
 - User
   - id
   - fullName
@@ -42,6 +46,7 @@ Beneficiary is public and does not need a full system account in MVP.
   - updatedAt
 
 ## Authorization Rules
+
 - Backend authorization is mandatory.
 - Unauthenticated users are redirected or rejected.
 - Authenticated users without permission receive Forbidden.
@@ -49,6 +54,7 @@ Beneficiary is public and does not need a full system account in MVP.
 - Role changes affect permissions immediately after next request/session refresh.
 
 ## Drizzle Notes
+
 - Define tables using `pgTable` and PostgreSQL column types.
 - Export select/insert types with `$inferSelect` and `$inferInsert`.
 - Use Zod schemas for request validation separately from Drizzle schemas.
@@ -56,6 +62,7 @@ Beneficiary is public and does not need a full system account in MVP.
 - Generate and apply migrations with drizzle-kit.
 
 ## UI Pages
+
 - `/login`
 - `/dashboard`
 - `/dashboard/users`
@@ -64,6 +71,7 @@ Beneficiary is public and does not need a full system account in MVP.
 - `/dashboard/settings/change-password`
 
 ## Acceptance Criteria
+
 - Active admin can log in and reach Admin Dashboard.
 - Active Camp Manager can log in and reach Camp Manager Dashboard.
 - Invalid credentials show generic error.
