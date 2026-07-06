@@ -1,10 +1,10 @@
 import {
   boolean,
-  integer,
   pgTable,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+import { userRole } from "./enums";
 
 /**
  * Authentication tables managed by better-auth.
@@ -20,8 +20,13 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
-  phoneNumber: integer("phone_number"),
-  bio: text("bio"),
+  // Custom fields
+  phone: text("phone"),
+  // Better Auth admin plugin fields
+  role: userRole("role").notNull().default("user"),
+  banned: boolean("banned").default(false),
+  banReason: text("ban_reason"),
+  banExpires: timestamp("ban_expires"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

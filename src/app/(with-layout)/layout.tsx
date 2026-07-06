@@ -1,11 +1,16 @@
 import { Header } from "@/components/Layouts/header";
 import { Sidebar } from "@/components/Layouts/sidebar";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { type PropsWithChildren } from "react";
 
-export default function WithLayout({ children }: PropsWithChildren) {
+export default async function WithLayout({ children }: PropsWithChildren) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userRole = session?.user?.role ?? "user";
+
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <Sidebar userRole={userRole} />
 
       <div className="w-full bg-gray-2 dark:bg-[#020d1a]">
         <Header />

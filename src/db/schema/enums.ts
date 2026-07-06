@@ -8,14 +8,7 @@ import { pgEnum } from "drizzle-orm/pg-core";
  * enum up-front has no schema effect until a later phase uses it.
  */
 
-export const userStatus = pgEnum("user_status", ["active", "inactive"]);
-
-export const userRole = pgEnum("user_role", [
-  "system_admin",
-  "camp_manager",
-  "org_representative",
-  "independent_initiator",
-]);
+export const userRole = pgEnum("user_role", ["user", "admin"]);
 
 export const campStatus = pgEnum("camp_status", ["active", "inactive", "closed"]);
 

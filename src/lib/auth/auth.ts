@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { admin } from "better-auth/plugins";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 
@@ -8,18 +9,15 @@ if (!process.env.BETTER_AUTH_SECRET) {
 }
 
 export const auth = betterAuth({
-  appName: "NextAdmin",
-  baseURL: process.env.BETTER_AUTH_URL!,
+  appName: "Sa3dne",
+  baseURL: process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL,
 
   user: {
     additionalFields: {
-      phoneNumber: {
-        type: "number",
-        required: false,
-      },
-      bio: {
+      phone: {
         type: "string",
         required: false,
+        fieldName: "phone",
       },
     },
   },
@@ -30,26 +28,19 @@ export const auth = betterAuth({
     minPasswordLength: 8,
   },
 
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    },
-  },
-
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
   }),
 
-  // plugins: [...authorizationPlugins],
+  plugins: [
+    admin({
+      defaultRole: "user",
+      adminRole: "admin",
+    }),
+  ],
 
   session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5,
-      strategy: "compact",
-    },
     deferSessionRefresh: true,
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24,
@@ -57,6 +48,5 @@ export const auth = betterAuth({
 
   trustedOrigins: [
     process.env.NEXT_PUBLIC_APP_URL!,
-    process.env.BETTER_AUTH_URL!,
   ],
 });

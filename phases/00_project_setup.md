@@ -1,6 +1,6 @@
 # Phase 00 - Project Setup and Architecture
 
-## Objective
+# Objective
 Use the NextAdmin dashboard template as the base application, then configure Neon PostgreSQL 18, Drizzle ORM, TypeScript conventions, database connection, and development rules.
 
 ## Scope

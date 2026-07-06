@@ -64,6 +64,38 @@ export const NAV_DATA = [
     ],
   },
   {
+    label: "ADMIN",
+    adminOnly: true,
+    items: [
+      {
+        title: "إدارة المستخدمين",
+        icon: Icons.User,
+        adminOnly: true,
+        items: [
+          {
+            title: "قائمة المستخدمين",
+            url: "/dashboard/users",
+          },
+          {
+            title: "إضافة مستخدم",
+            url: "/dashboard/users/new",
+          },
+        ],
+      },
+      {
+        title: "الإعدادات",
+        icon: Icons.Alphabet,
+        adminOnly: true,
+        items: [
+          {
+            title: "تغيير كلمة المرور",
+            url: "/dashboard/settings/change-password",
+          },
+        ],
+      },
+    ],
+  },
+  {
     label: "OTHERS",
     items: [
       {

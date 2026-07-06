@@ -10,31 +10,40 @@ import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
 
-export function Sidebar() {
+type SidebarProps = {
+  userRole?: string;
+};
+
+export function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
+  const isAdmin = userRole === "admin";
+
+  // Filter nav data based on role
+  const filteredNavData = NAV_DATA.filter(
+    (section) => !("adminOnly" in section) || isAdmin,
+  ).map((section) => ({
+    ...section,
+    items: section.items.filter(
+      (item) => !("adminOnly" in item) || isAdmin,
+    ),
+  }));
+
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => (prev.includes(title) ? [] : [title]));
-
-    // Uncomment the following line to enable multiple expanded items
-    // setExpandedItems((prev) =>
-    //   prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title],
-    // );
   };
 
   useEffect(() => {
     // Keep collapsible open, when it's subpage is active
-    NAV_DATA.some((section) => {
+    filteredNavData.some((section) => {
       return section.items.some((item) => {
         return item.items.some((subItem) => {
           if (subItem.url === pathname) {
             if (!expandedItems.includes(item.title)) {
               toggleExpanded(item.title);
             }
-
-            // Break the loop
             return true;
           }
         });
@@ -79,7 +88,6 @@ export function Sidebar() {
                 className="absolute left-3/4 right-4.5 top-1/2 -translate-y-1/2 text-right"
               >
                 <span className="sr-only">Close Menu</span>
-
                 <ArrowLeftIcon className="ml-auto size-7" />
               </button>
             )}
@@ -87,7 +95,7 @@ export function Sidebar() {
 
           {/* Navigation */}
           <div className="custom-scrollbar mt-6 flex-1 overflow-y-auto pr-3 min-[850px]:mt-10">
-            {NAV_DATA.map((section) => (
+            {filteredNavData.map((section) => (
               <div key={section.label} className="mb-6">
                 <h2 className="mb-5 text-sm font-medium text-dark-4 dark:text-dark-6">
                   {section.label}
@@ -160,7 +168,6 @@ export function Sidebar() {
                                   className="size-6 shrink-0"
                                   aria-hidden="true"
                                 />
-
                                 <span>{item.title}</span>
                               </MenuItem>
                             );
