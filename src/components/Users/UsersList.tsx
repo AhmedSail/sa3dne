@@ -137,15 +137,32 @@ export default function UsersList({
 
                     {/* Role */}
                     <td className="whitespace-nowrap px-4 py-3.5">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          user.role === "admin"
-                            ? "bg-primary/10 text-primary"
-                            : "bg-gray-2 text-dark-4 dark:bg-dark-2 dark:text-dark-6"
-                        }`}
-                      >
-                        {user.role === "admin" ? "مشرف" : "مستخدم"}
-                      </span>
+                      {(() => {
+                        const getRoleDetails = (role: string) => {
+                          switch (role) {
+                            case "admin":
+                              return { label: "مشرف النظام", class: "bg-primary/10 text-primary" };
+                            case "camp_manager":
+                              return { label: "مدير مخيم", class: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400" };
+                            case "org_representative":
+                              return { label: "ممثل منظمة", class: "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400" };
+                            case "independent_initiator":
+                              return { label: "مبادر مستقل", class: "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400" };
+                            case "beneficiary":
+                              return { label: "مستفيد", class: "bg-teal-50 text-teal-600 dark:bg-teal-900/20 dark:text-teal-400" };
+                            default:
+                              return { label: "مستخدم عادي", class: "bg-gray-2 text-dark-4 dark:bg-dark-2 dark:text-dark-6" };
+                          }
+                        };
+                        const roleDetails = getRoleDetails(user.role);
+                        return (
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${roleDetails.class}`}
+                          >
+                            {roleDetails.label}
+                          </span>
+                        );
+                      })()}
                     </td>
 
                     {/* Status */}

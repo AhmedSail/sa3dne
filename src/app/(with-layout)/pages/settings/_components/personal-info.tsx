@@ -3,11 +3,9 @@
 import {
   CallIcon,
   EmailIcon,
-  PencilSquareIcon,
   UserIcon,
 } from "@/assets/icons";
 import InputGroup from "@/components/FormElements/InputGroup";
-import { TextAreaGroup } from "@/components/FormElements/InputGroup/text-area";
 import { ShowcaseSection } from "@/components/Layouts/showcase-section";
 import { authClient } from "@/lib/auth/auth-client";
 import { useState, type FormEvent } from "react";
@@ -15,24 +13,22 @@ import { toast } from "sonner";
 
 export interface UserInfo {
   name: string;
-  phoneNumber?: string;
+  phone?: string;
   email: string;
-  bio?: string;
 }
 
 export function PersonalInfoForm(personalInfo: UserInfo) {
-  const { name, phoneNumber = "", email, bio = "" } = personalInfo;
+  const { name, phone = "", email } = personalInfo;
 
   const [formData, setFormData] = useState<UserInfo>({
     name: name,
-    phoneNumber: phoneNumber,
+    phone: phone,
     email: email,
-    bio: bio,
   });
   const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -44,9 +40,8 @@ export function PersonalInfoForm(personalInfo: UserInfo) {
   const handleReset = () => {
     setFormData({
       name: name,
-      phoneNumber: phoneNumber,
+      phone: phone,
       email: email,
-      bio: bio,
     });
   };
 
@@ -57,11 +52,10 @@ export function PersonalInfoForm(personalInfo: UserInfo) {
     try {
       const updatePayload = {
         name: formData.name,
-        phoneNumber: Number(formData.phoneNumber),
-        bio: formData.bio,
+        phone: formData.phone,
       };
 
-      const updatePromise = authClient.updateUser(updatePayload);
+      const updatePromise = authClient.updateUser(updatePayload as any);
 
       toast.promise(updatePromise, {
         loading: "Updating profile...",
@@ -108,10 +102,10 @@ export function PersonalInfoForm(personalInfo: UserInfo) {
           <InputGroup
             className="w-full sm:w-1/2"
             type="text"
-            name="phoneNumber"
+            name="phone"
             label="Phone Number"
             placeholder="+990 3343 7865"
-            value={formData.phoneNumber}
+            value={formData.phone}
             handleChange={handleInputChange}
             icon={<CallIcon />}
             iconPosition="left"
@@ -132,30 +126,6 @@ export function PersonalInfoForm(personalInfo: UserInfo) {
           iconPosition="left"
           height="sm"
           disabled
-        />
-
-        <InputGroup
-          className="mb-5.5"
-          type="text"
-          name="username"
-          label="Username"
-          placeholder="devidjhon24"
-          handleChange={handleInputChange}
-          icon={<UserIcon />}
-          iconPosition="left"
-          height="sm"
-          disabled
-        />
-
-        <TextAreaGroup
-          className="mb-5.5"
-          name="bio"
-          label="BIO"
-          placeholder="Write your bio here"
-          icon={<PencilSquareIcon />}
-          value={formData.bio}
-          onChange={handleInputChange}
-          disabled={isLoading}
         />
 
         <div className="flex justify-end gap-3">

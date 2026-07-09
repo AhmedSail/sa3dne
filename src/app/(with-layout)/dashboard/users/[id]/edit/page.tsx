@@ -13,9 +13,9 @@ export default async function EditUserPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth.api.getSession({
+  const session = (await auth.api.getSession({
     headers: await headers(),
-  });
+  })) as any;
 
   if (!session || session.user.role !== "admin") {
     redirect("/dashboard");

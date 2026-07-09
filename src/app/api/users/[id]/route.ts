@@ -15,7 +15,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   // Verify the caller is an authenticated admin
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = (await auth.api.getSession({ headers: request.headers })) as any;
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

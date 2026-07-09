@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { type PropsWithChildren } from "react";
 
 export default async function WithLayout({ children }: PropsWithChildren) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = (await auth.api.getSession({ headers: await headers() })) as any;
   const userRole = session?.user?.role ?? "user";
 
   return (

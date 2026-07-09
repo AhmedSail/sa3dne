@@ -6,7 +6,7 @@ export const authorizationPlugins = [
   admin({
     ac,
     roles,
-    defaultRole: "viewer",
+    defaultRole: "user",
     adminRole: "admin",
   }),
 ];

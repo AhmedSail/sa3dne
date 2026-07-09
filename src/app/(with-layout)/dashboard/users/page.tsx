@@ -8,9 +8,9 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
-  const session = await auth.api.getSession({
+  const session = (await auth.api.getSession({
     headers: await headers(),
-  });
+  })) as any;
 
   if (!session || session.user.role !== "admin") {
     redirect("/dashboard");

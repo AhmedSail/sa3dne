@@ -14,7 +14,7 @@ export default function NewUserForm() {
     email: "",
     password: "",
     phone: "",
-    role: "user" as "user" | "admin",
+    role: "user" as "user" | "admin" | "camp_manager" | "org_representative" | "independent_initiator" | "beneficiary",
   });
 
   const handleChange = (
@@ -31,7 +31,7 @@ export default function NewUserForm() {
       name: form.name,
       email: form.email,
       password: form.password,
-      role: form.role,
+      role: form.role as any,
       data: {
         phone: form.phone || null,
       },
@@ -136,8 +136,12 @@ export default function NewUserForm() {
               onChange={handleChange}
               className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             >
-              <option value="user">مستخدم</option>
-              <option value="admin">مشرف</option>
+              <option value="user">مستخدم عادي</option>
+              <option value="admin">مشرف النظام (System Admin)</option>
+              <option value="camp_manager">مدير مخيم (Camp Manager)</option>
+              <option value="org_representative">ممثل منظمة (Org Representative)</option>
+              <option value="independent_initiator">مبادر مساعدات مستقل (Independent Initiator)</option>
+              <option value="beneficiary">مستفيد (Beneficiary)</option>
             </select>
           </div>
 

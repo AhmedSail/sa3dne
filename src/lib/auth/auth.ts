@@ -1,8 +1,8 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin } from "better-auth/plugins";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { authorizationPlugins } from "./modules/authorization";
 
 if (!process.env.BETTER_AUTH_SECRET) {
   throw new Error("BETTER_AUTH_SECRET is not set.");
@@ -34,10 +34,7 @@ export const auth = betterAuth({
   }),
 
   plugins: [
-    admin({
-      defaultRole: "user",
-      adminRole: "admin",
-    }),
+    ...authorizationPlugins,
   ],
 
   session: {

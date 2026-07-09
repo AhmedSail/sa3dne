@@ -25,8 +25,7 @@ export default async function SettingsPage() {
           <PersonalInfoForm
             name={user?.name!}
             email={user?.email!}
-            bio={user?.bio ?? undefined}
-            phoneNumber={user?.phoneNumber?.toString()}
+            phone={user?.phone ?? undefined}
           />
         </div>
         <div className="col-span-5 xl:col-span-2">
