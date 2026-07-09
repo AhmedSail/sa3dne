@@ -45,6 +45,10 @@ The system applies **RBAC (Role-Based Access Control)** on two layers:
 - Current assumption: **one primary role per user** (revisable if multi-role is needed).
 - A Camp Manager may be assigned to more than one camp; the `camp` scope covers all of their camps.
 
+> **Design Clarification (Intentional Restrictions):**
+> - **Camp Manager (CM) cannot create a camp** — `camp.create` is exclusively reserved for the System Administrator (SA). A CM is *assigned* to an existing camp by the SA and cannot self-provision a new one.
+> - **Beneficiary (BN) cannot register a family** — `family.create` is exclusively for SA and CM. A beneficiary's family record is always registered *on their behalf* by a Camp Manager.
+
 ---
 
 ## 3. Permission Matrix by Module
@@ -199,8 +203,8 @@ The system applies **RBAC (Role-Based Access Control)** on two layers:
 
 ## 9. Role Summary (What Each Role Sees/Does)
 
-- **SA:** everything system-wide — managing users and roles, registering camps and assigning managers, monitoring logs, comprehensive reports.
-- **CM:** full operation of their camp — families, resources, distribution, receiving contributions, complaints, camp reports.
+- **SA:** everything system-wide — managing users and roles, **registering camps** and assigning managers, monitoring logs, comprehensive reports.
+- **CM:** full operation of their *assigned* camp — families, resources, distribution, receiving contributions, complaints, camp reports. **Cannot create a new camp** (SA-only action).
 - **OR:** aggregated read (statistics/classification/resource availability) + submitting official contributions + coordination reports.
 - **AI:** reading verified needs and shortage alerts + submitting independent contributions + tracking them.
 - **BN:** submitting and tracking their own reports only.
