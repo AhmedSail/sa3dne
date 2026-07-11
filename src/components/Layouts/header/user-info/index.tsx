@@ -14,11 +14,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { LogOutIcon, SettingsIcon, UserIcon } from "./icons";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export function UserInfo() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const session = useSession();
+  const { t, dir } = useLanguage();
 
   async function handleLogout() {
     setIsOpen(false);
@@ -93,7 +95,7 @@ export function UserInfo() {
 
       <DropdownContent
         className="border border-stroke bg-white shadow-md min-[230px]:min-w-70 dark:border-dark-3 dark:bg-gray-dark"
-        align="end"
+        align={dir === "rtl" ? "start" : "end"}
       >
         <h2 className="sr-only">User information</h2>
 
@@ -132,7 +134,7 @@ export function UserInfo() {
           >
             <UserIcon />
 
-            <span className="mr-auto text-base font-medium">View profile</span>
+            <span className="text-base font-medium">{t("profile")}</span>
           </Link>
 
           <Link
@@ -142,8 +144,8 @@ export function UserInfo() {
           >
             <SettingsIcon />
 
-            <span className="mr-auto text-base font-medium">
-              Account Settings
+            <span className="text-base font-medium">
+              {t("settings")}
             </span>
           </Link>
         </div>
@@ -157,7 +159,7 @@ export function UserInfo() {
           >
             <LogOutIcon />
 
-            <span className="text-base font-medium">Log out</span>
+            <span className="text-base font-medium">{t("logout")}</span>
           </button>
         </div>
       </DropdownContent>

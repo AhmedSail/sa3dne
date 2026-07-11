@@ -11,6 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { BellIcon } from "./icons";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 const notificationList = [
   {
@@ -44,6 +45,7 @@ export function Notification() {
   const [isOpen, setIsOpen] = useState(false);
   const [isDotVisible, setIsDotVisible] = useState(true);
   const isMobile = useIsMobile();
+  const { dir } = useLanguage();
 
   return (
     <Dropdown
@@ -74,7 +76,7 @@ export function Notification() {
       </DropdownTrigger>
 
       <DropdownContent
-        align={isMobile ? "end" : "center"}
+        align={isMobile ? (dir === "rtl" ? "start" : "end") : "center"}
         className="border border-stroke bg-white px-3.5 py-3 shadow-md min-[350px]:min-w-[20rem] dark:border-dark-3 dark:bg-gray-dark"
       >
         <div className="mb-1 flex items-center justify-between px-2 py-1.5">

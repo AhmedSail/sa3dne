@@ -6,6 +6,7 @@ import "jsvectormap/dist/jsvectormap.css";
 
 import type { Metadata } from "next";
 import NextTopLoader from "nextjs-toploader";
+import Script from "next/script";
 import type { PropsWithChildren } from "react";
 import { Toaster } from "sonner";
 import { Providers } from "./providers";
@@ -22,6 +23,19 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`
+            try {
+              if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+              } else {
+                document.documentElement.classList.remove('dark');
+              }
+            } catch (_) {}
+          `}
+        </Script>
+      </head>
       <body suppressHydrationWarning>
         <Providers>
           <NextTopLoader color="#5750F1" showSpinner={false} />

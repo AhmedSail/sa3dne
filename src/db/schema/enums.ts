@@ -17,6 +17,14 @@ export const userRole = pgEnum("user_role", [
   "beneficiary",
 ]);
 
+export const gazaGovernorate = pgEnum("gaza_governorate", [
+  "north_gaza",
+  "gaza_city",
+  "middle_area",
+  "khan_yunis",
+  "rafah",
+]);
+
 export const campStatus = pgEnum("camp_status", ["active", "inactive", "closed"]);
 
 export const needLevel = pgEnum("need_level", ["low", "medium", "high", "critical"]);

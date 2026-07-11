@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/lib/theme/theme-context";
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "./icons";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 const THEMES = [
   {
@@ -17,6 +18,7 @@ const THEMES = [
 export function ThemeToggleSwitch() {
   const { setTheme, theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { dir } = useLanguage();
 
   useEffect(() => {
     setMounted(true);
@@ -25,6 +27,11 @@ export function ThemeToggleSwitch() {
   if (!mounted) {
     return null;
   }
+
+  const isDark = theme === "dark";
+  const translateClass = dir === "rtl"
+    ? (isDark ? "translate-x-0" : "translate-x-12")
+    : (isDark ? "translate-x-12" : "translate-x-0");
 
   return (
     <button
@@ -37,7 +44,12 @@ export function ThemeToggleSwitch() {
 
       <span aria-hidden className="relative flex gap-2.5">
         {/* Indicator */}
-        <span className="absolute size-9.5 rounded-full border border-gray-200 bg-white transition-all dark:translate-x-12 dark:border-none dark:bg-dark-2 dark:group-hover:bg-dark-3" />
+        <span
+          className={cn(
+            "absolute left-0 size-9.5 rounded-full border border-gray-200 bg-white transition-all dark:border-none dark:bg-dark-2 dark:group-hover:bg-dark-3",
+            translateClass
+          )}
+        />
 
         {THEMES.map(({ name, Icon }) => (
           <span

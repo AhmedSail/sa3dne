@@ -10,6 +10,8 @@ import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
 
+import { useLanguage } from "@/lib/i18n/language-context";
+
 type SidebarProps = {
   userRole?: string;
 };
@@ -18,6 +20,7 @@ export function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const { t } = useLanguage();
 
   const isAdmin = userRole === "admin";
 
@@ -98,10 +101,10 @@ export function Sidebar({ userRole }: SidebarProps) {
             {filteredNavData.map((section) => (
               <div key={section.label} className="mb-6">
                 <h2 className="mb-5 text-sm font-medium text-dark-4 dark:text-dark-6">
-                  {section.label}
+                  {t(section.label)}
                 </h2>
 
-                <nav role="navigation" aria-label={section.label}>
+                <nav role="navigation" aria-label={t(section.label)}>
                   <ul className="space-y-2">
                     {section.items.map((item) => (
                       <li key={item.title}>
@@ -118,7 +121,7 @@ export function Sidebar({ userRole }: SidebarProps) {
                                 aria-hidden="true"
                               />
 
-                              <span>{item.title}</span>
+                              <span>{item.langKey ? t(item.langKey) : item.title}</span>
 
                               <ChevronUp
                                 className={cn(
@@ -142,7 +145,7 @@ export function Sidebar({ userRole }: SidebarProps) {
                                       href={subItem.url}
                                       isActive={pathname === subItem.url}
                                     >
-                                      <span>{subItem.title}</span>
+                                      <span>{subItem.langKey ? t(subItem.langKey) : subItem.title}</span>
                                     </MenuItem>
                                   </li>
                                 ))}
@@ -168,7 +171,7 @@ export function Sidebar({ userRole }: SidebarProps) {
                                   className="size-6 shrink-0"
                                   aria-hidden="true"
                                 />
-                                <span>{item.title}</span>
+                                <span>{item.langKey ? t(item.langKey) : item.title}</span>
                               </MenuItem>
                             );
                           })()

@@ -35,23 +35,26 @@ export default function EditUserForm({ user }: { user: UserData }) {
 
     let failed = false;
 
-    // Update role if changed
-    if (form.role !== user.role) {
-      const { error: roleError } = await authClient.admin.setRole({
-        userId: user.id,
-        role: form.role as any,
-      });
-      if (roleError) failed = true;
-    }
-
-    // Update name and phone via custom API route
-    if (form.name !== user.name || form.phone !== (user.phone ?? "")) {
-      const res = await fetch(`/api/users/${user.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, phone: form.phone }),
-      });
-      if (!res.ok) failed = true;
+    // Update name, phone, and role via custom API route
+    if (
+      form.name !== user.name ||
+      form.phone !== (user.phone ?? "") ||
+      form.role !== user.role
+    ) {
+      try {
+        const res = await fetch(`/api/users/${user.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: form.name,
+            phone: form.phone || null,
+            role: form.role,
+          }),
+        });
+        if (!res.ok) failed = true;
+      } catch (err) {
+        failed = true;
+      }
     }
 
     setSaving(false);

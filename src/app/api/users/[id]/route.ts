@@ -8,6 +8,14 @@ import { z } from "zod";
 const updateUserSchema = z.object({
   name: z.string().min(2).optional(),
   phone: z.string().optional().nullable(),
+  role: z.enum([
+    "user",
+    "admin",
+    "camp_manager",
+    "org_representative",
+    "independent_initiator",
+    "beneficiary",
+  ]).optional(),
 });
 
 export async function PUT(
@@ -34,9 +42,10 @@ export async function PUT(
     );
   }
 
-  const updates: Partial<{ name: string; phone: string | null }> = {};
+  const updates: any = {};
   if (parsed.data.name !== undefined) updates.name = parsed.data.name;
   if (parsed.data.phone !== undefined) updates.phone = parsed.data.phone;
+  if (parsed.data.role !== undefined) updates.role = parsed.data.role;
 
   await db.update(user).set(updates).where(eq(user.id, id));
 

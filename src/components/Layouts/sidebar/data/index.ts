@@ -2,123 +2,77 @@ import * as Icons from "../icons";
 
 export const NAV_DATA = [
   {
-    label: "MAIN MENU",
+    label: "mainMenu",
     items: [
       {
         title: "Dashboard",
+        langKey: "dashboard",
         icon: Icons.HomeIcon,
-        items: [
-          {
-            title: "eCommerce",
-            url: "/",
-          },
-        ],
-      },
-      {
-        title: "Calendar",
-        url: "/calendar",
-        icon: Icons.Calendar,
+        url: "/",
         items: [],
       },
       {
-        title: "Profile",
-        url: "/profile",
-        icon: Icons.User,
-        items: [],
-      },
-      {
-        title: "Forms",
-        icon: Icons.Alphabet,
-        items: [
-          {
-            title: "Form Elements",
-            url: "/forms/form-elements",
-          },
-          {
-            title: "Form Layout",
-            url: "/forms/form-layout",
-          },
-        ],
-      },
-      {
-        title: "Tables",
-        url: "/tables",
+        title: "Camps",
+        langKey: "camps",
         icon: Icons.Table,
-        items: [
-          {
-            title: "Tables",
-            url: "/tables",
-          },
-        ],
+        url: "/dashboard/camps",
+        items: [],
       },
       {
-        title: "Pages",
+        title: "Families",
+        langKey: "families",
+        icon: Icons.User,
+        url: "/dashboard/families",
+        items: [],
+      },
+      {
+        title: "Aid Types",
+        langKey: "aidTypes",
         icon: Icons.Alphabet,
-        items: [
-          {
-            title: "Settings",
-            url: "/pages/settings",
-          },
-        ],
+        url: "/dashboard/aid-types",
+        items: [],
+      },
+      {
+        title: "Aid Providers",
+        langKey: "providers",
+        icon: Icons.PieChart,
+        url: "/dashboard/providers",
+        items: [],
       },
     ],
   },
   {
-    label: "ADMIN",
+    label: "adminMenu",
     adminOnly: true,
     items: [
       {
-        title: "إدارة المستخدمين",
+        title: "User Management",
+        langKey: "users",
         icon: Icons.User,
         adminOnly: true,
         items: [
           {
-            title: "قائمة المستخدمين",
+            title: "Users List",
+            langKey: "users",
             url: "/dashboard/users",
           },
           {
-            title: "إضافة مستخدم",
+            title: "Add User",
+            langKey: "add",
             url: "/dashboard/users/new",
           },
         ],
       },
       {
-        title: "الإعدادات",
+        title: "Settings",
+        langKey: "settings",
         icon: Icons.Alphabet,
         adminOnly: true,
         items: [
           {
-            title: "تغيير كلمة المرور",
+            title: "Change Password",
+            langKey: "changePassword",
             url: "/dashboard/settings/change-password",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    label: "OTHERS",
-    items: [
-      {
-        title: "Charts",
-        icon: Icons.PieChart,
-        items: [
-          {
-            title: "Basic Chart",
-            url: "/charts/basic-chart",
-          },
-        ],
-      },
-      {
-        title: "UI Elements",
-        icon: Icons.FourCircle,
-        items: [
-          {
-            title: "Alerts",
-            url: "/ui-elements/alerts",
-          },
-          {
-            title: "Buttons",
-            url: "/ui-elements/buttons",
           },
         ],
       },
