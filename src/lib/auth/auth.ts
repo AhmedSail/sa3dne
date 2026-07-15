@@ -45,5 +45,9 @@ export const auth = betterAuth({
 
   trustedOrigins: [
     process.env.NEXT_PUBLIC_APP_URL!,
+    // Local dev fallbacks so auth mutations (e.g. sign-out) are not rejected
+    // when the dev server picks a different port than the configured URL.
+    "http://localhost:3000",
+    "http://localhost:3001",
   ],
 });
