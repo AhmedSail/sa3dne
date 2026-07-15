@@ -1,0 +1,77 @@
+import { db } from "@/db";
+import { aidContribution, aidContributionLine } from "@/db/schema";
+import { auth } from "@/lib/auth";
+import { getActiveProviderForUser } from "@/lib/contributions/access";
+import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * POST /api/contributions/[id]/submit
+ * Submits a draft contribution. Requires at least one valid line. On success
+ * the header becomes `submitted` and every line becomes `pending`, at which
+ * point the lines become visible to the relevant Camp Managers.
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = (await auth.api.getSession({ headers: request.headers })) as any;
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const [contribution] = await db
+    .select()
+    .from(aidContribution)
+    .where(eq(aidContribution.id, id))
+    .limit(1);
+
+  if (!contribution) {
+    return NextResponse.json({ error: "Contribution not found" }, { status: 404 });
+  }
+
+  if (session.user.role !== "admin") {
+    const provider = await getActiveProviderForUser(session.user.id);
+    if (!provider || provider.id !== contribution.providerId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
+  if (contribution.status !== "draft") {
+    return NextResponse.json(
+      { error: "Only draft contributions can be submitted" },
+      { status: 409 },
+    );
+  }
+
+  const lines = await db
+    .select({ id: aidContributionLine.id })
+    .from(aidContributionLine)
+    .where(eq(aidContributionLine.contributionId, id));
+
+  if (lines.length === 0) {
+    return NextResponse.json(
+      { error: "A contribution must contain at least one valid line to be submitted" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const now = new Date();
+    await db
+      .update(aidContribution)
+      .set({ status: "submitted", submittedAt: now, updatedAt: now })
+      .where(eq(aidContribution.id, id));
+
+    await db
+      .update(aidContributionLine)
+      .set({ status: "pending", updatedAt: now })
+      .where(eq(aidContributionLine.contributionId, id));
+
+    return NextResponse.json({ success: true, status: "submitted" });
+  } catch (error) {
+    console.error("Error submitting contribution:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

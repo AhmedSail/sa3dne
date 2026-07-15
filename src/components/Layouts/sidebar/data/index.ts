@@ -39,6 +39,27 @@ export const NAV_DATA = [
         url: "/dashboard/providers",
         items: [],
       },
+      {
+        title: "Contributions",
+        langKey: "contributions",
+        icon: Icons.FourCircle,
+        url: "/dashboard/contributions",
+        items: [],
+      },
+      {
+        title: "My Contributions",
+        langKey: "myContributions",
+        icon: Icons.FourCircle,
+        url: "/dashboard/my-contributions",
+        items: [],
+      },
+      {
+        title: "Incoming Aid",
+        langKey: "incomingAid",
+        icon: Icons.Calendar,
+        url: "/dashboard/incoming-aid",
+        items: [],
+      },
     ],
   },
   {
