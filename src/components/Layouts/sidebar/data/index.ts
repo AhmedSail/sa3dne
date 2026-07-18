@@ -60,6 +60,13 @@ export const NAV_DATA = [
         url: "/dashboard/incoming-aid",
         items: [],
       },
+      {
+        title: "Complaints",
+        langKey: "complaints",
+        icon: Icons.Table,
+        url: "/dashboard/complaints",
+        items: [],
+      },
     ],
   },
   {
