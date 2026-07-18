@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { createUserAction } from "@/lib/actions/users";
 
 export default function NewUserForm() {
   const router = useRouter();
@@ -27,23 +28,21 @@ export default function NewUserForm() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await authClient.admin.createUser({
+    const res = await createUserAction({
       name: form.name,
       email: form.email,
       password: form.password,
-      role: form.role as any,
-      data: {
-        phone: form.phone || null,
-      },
+      role: form.role,
+      phone: form.phone || null,
     });
 
     setLoading(false);
 
-    if (error) {
+    if (res.error) {
       toast.error(
-        error.message?.includes("already")
+        res.error.includes("already")
           ? "البريد الإلكتروني مستخدم بالفعل"
-          : "فشل في إنشاء المستخدم",
+          : "فشل في إنشاء المستخدم: " + res.error,
       );
       return;
     }

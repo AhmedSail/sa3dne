@@ -67,6 +67,13 @@ export const NAV_DATA = [
         url: "/dashboard/complaints",
         items: [],
       },
+      {
+        title: "Camp Needs",
+        langKey: "campNeeds",
+        icon: Icons.PieChart,
+        url: "/dashboard/camp-needs",
+        items: [],
+      },
     ],
   },
   {

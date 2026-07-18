@@ -1,0 +1,57 @@
+"use server";
+
+import { auth } from "@/lib/auth/auth";
+import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { db } from "@/db";
+import { user, account } from "@/db/schema/auth";
+import { hashPassword } from "better-auth/crypto";
+
+export async function createUserAction(data: { name: string, email: string, password: string, role: string, phone: string | null }) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session || (session.user as any).role !== "admin") {
+    return { error: "غير مصرح لك بإضافة مستخدمين. يرجى تسجيل الخروج والدخول مجدداً إذا كنت متأكداً من صلاحياتك." };
+  }
+
+  try {
+    const existing = await db.query.user.findFirst({
+      where: (user, { eq }) => eq(user.email, data.email)
+    });
+
+    if (existing) {
+      return { error: "البريد الإلكتروني مستخدم بالفعل" };
+    }
+
+    const userId = crypto.randomUUID();
+    const hashed = await hashPassword(data.password);
+
+    await db.transaction(async (tx) => {
+      await tx.insert(user).values({
+        id: userId,
+        name: data.name,
+        email: data.email,
+        role: data.role as any,
+        phone: data.phone,
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await tx.insert(account).values({
+        id: crypto.randomUUID(),
+        accountId: data.email,
+        providerId: "credential",
+        userId: userId,
+        password: hashed,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    });
+
+    revalidatePath("/dashboard/users");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Create user error:", error);
+    return { error: error.message || "حدث خطأ أثناء الإنشاء" };
+  }
+}
