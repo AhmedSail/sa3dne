@@ -8,41 +8,9 @@ import {
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { getAssignedCampIds } from "@/lib/contributions/access";
+import { buildReceiptUpdate, confirmSchema } from "@/lib/contributions/receipt";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-
-/**
- * Receipt confirmation actions. Each action carries its own server-side rules,
- * validated with Zod (never trusting the client):
- *  - full:         actual = planned, receipt date required.
- *  - partial:      0 < actual < planned, receipt date + notes required.
- *  - not_received: actual is 0/empty, notes required.
- *  - reject:       rejection reason required.
- */
-const confirmSchema = z.discriminatedUnion("action", [
-  z.object({
-    action: z.literal("full"),
-    actualReceiptDate: z.string().min(1, "Receipt date is required"),
-  }),
-  z.object({
-    action: z.literal("partial"),
-    actualReceivedQuantity: z
-      .number()
-      .int()
-      .positive("Received quantity must be greater than zero"),
-    actualReceiptDate: z.string().min(1, "Receipt date is required"),
-    confirmationNotes: z.string().min(1, "Notes are required for partial receipt"),
-  }),
-  z.object({
-    action: z.literal("not_received"),
-    confirmationNotes: z.string().min(1, "Notes are required when not received"),
-  }),
-  z.object({
-    action: z.literal("reject"),
-    rejectionReason: z.string().min(1, "A rejection reason is required"),
-  }),
-]);
 
 async function loadLineScoped(session: any, lineId: string) {
   const rows = await db
@@ -166,76 +134,20 @@ export async function PATCH(
       );
     }
 
-    const line = scoped.line;
-    const now = new Date();
-    const base = {
-      confirmedById: session.user.id,
-      confirmedAt: now,
-      updatedAt: now,
-    };
-
-    let updates: Record<string, unknown>;
-    const data = parsed.data;
-
-    switch (data.action) {
-      case "full": {
-        updates = {
-          ...base,
-          status: "received",
-          actualReceivedQuantity: line.plannedQuantity,
-          actualReceiptDate: new Date(data.actualReceiptDate),
-          confirmationNotes: null,
-          rejectionReason: null,
-        };
-        break;
-      }
-      case "partial": {
-        if (data.actualReceivedQuantity >= line.plannedQuantity) {
-          return NextResponse.json(
-            { error: "Partial quantity must be less than the planned quantity" },
-            { status: 400 },
-          );
-        }
-        updates = {
-          ...base,
-          status: "partially_received",
-          actualReceivedQuantity: data.actualReceivedQuantity,
-          actualReceiptDate: new Date(data.actualReceiptDate),
-          confirmationNotes: data.confirmationNotes,
-          rejectionReason: null,
-        };
-        break;
-      }
-      case "not_received": {
-        updates = {
-          ...base,
-          status: "not_received",
-          actualReceivedQuantity: 0,
-          actualReceiptDate: null,
-          confirmationNotes: data.confirmationNotes,
-          rejectionReason: null,
-        };
-        break;
-      }
-      case "reject": {
-        updates = {
-          ...base,
-          status: "rejected",
-          actualReceivedQuantity: null,
-          actualReceiptDate: null,
-          confirmationNotes: null,
-          rejectionReason: data.rejectionReason,
-        };
-        break;
-      }
+    const decision = buildReceiptUpdate(scoped.line, parsed.data, {
+      userId: session.user.id,
+      now: new Date(),
+    });
+    if (!decision.ok) {
+      return NextResponse.json({ error: decision.error }, { status: 400 });
     }
 
     await db
       .update(aidContributionLine)
-      .set(updates)
+      .set(decision.updates)
       .where(eq(aidContributionLine.id, lineId));
 
-    return NextResponse.json({ success: true, status: updates.status });
+    return NextResponse.json({ success: true, status: decision.updates.status });
   } catch (error) {
     console.error("Error confirming receipt:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

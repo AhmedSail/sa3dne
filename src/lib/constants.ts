@@ -11,11 +11,18 @@ export const APP_NAME = "Unified IDP Camp Management System";
 export const USER_STATUSES = ["active", "inactive"] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];
 
+/**
+ * Must stay identical to the `user_role` enum in `src/db/schema/enums.ts`, in
+ * both values and order. The System Administrator is stored as `admin`, which
+ * is the literal every protected route compares against.
+ */
 export const USER_ROLES = [
-  "system_admin",
+  "user",
+  "admin",
   "camp_manager",
   "org_representative",
   "independent_initiator",
+  "beneficiary",
 ] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
