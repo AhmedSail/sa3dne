@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCampManagerStats } from "../(home)/fetch";
+import { getCampManagerStats } from "../../(home)/fetch";
 import CampManagerClient from "./_components/CampManagerClient";
 
 export const dynamic = "force-dynamic";

@@ -2,6 +2,8 @@ import { db } from "@/db";
 import { aidContribution, aidContributionLine } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
+import { AuditAction, logAudit } from "@/lib/audit";
+import { notifyCampManagersOfSubmission } from "@/lib/notifications/service";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -68,6 +70,19 @@ export async function POST(
       .update(aidContributionLine)
       .set({ status: "pending", updatedAt: now })
       .where(eq(aidContributionLine.contributionId, id));
+
+    // Accountability + notify the relevant Camp Managers (best-effort; must not
+    // fail the submission itself).
+    await logAudit({
+      userId: session.user.id,
+      action: AuditAction.CONTRIBUTION_SUBMIT,
+      entityType: "contribution",
+      entityId: id,
+      oldValue: { status: contribution.status },
+      newValue: { status: "submitted", lineCount: lines.length },
+      request,
+    });
+    await notifyCampManagersOfSubmission(id);
 
     return NextResponse.json({ success: true, status: "submitted" });
   } catch (error) {

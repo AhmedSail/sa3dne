@@ -74,12 +74,27 @@ export const NAV_DATA = [
         url: "/dashboard/camp-needs",
         items: [],
       },
+      {
+        title: "Notifications",
+        langKey: "notifications",
+        icon: Icons.Calendar,
+        url: "/dashboard/notifications",
+        items: [],
+      },
     ],
   },
   {
     label: "adminMenu",
     adminOnly: true,
     items: [
+      {
+        title: "Audit Logs",
+        langKey: "auditLogs",
+        icon: Icons.Table,
+        adminOnly: true,
+        url: "/dashboard/audit-logs",
+        items: [],
+      },
       {
         title: "User Management",
         langKey: "users",

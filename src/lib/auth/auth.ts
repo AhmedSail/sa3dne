@@ -1,8 +1,10 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { createAuthMiddleware } from "better-auth/api";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { authorizationPlugins } from "./modules/authorization";
+import { AuditAction, logAudit } from "@/lib/audit";
 
 if (!process.env.BETTER_AUTH_SECRET) {
   throw new Error("BETTER_AUTH_SECRET is not set.");
@@ -36,6 +38,34 @@ export const auth = betterAuth({
   plugins: [
     ...authorizationPlugins,
   ],
+
+  hooks: {
+    // Record a password change in the audit log WITHOUT any password values.
+    // Best-effort: never let an audit failure break the auth flow.
+    after: createAuthMiddleware(async (ctx) => {
+      try {
+        if (ctx.path !== "/change-password") return;
+        const context = ctx.context as {
+          session?: { user?: { id?: string } };
+          newSession?: { user?: { id?: string } };
+        };
+        const userId =
+          context.session?.user?.id ?? context.newSession?.user?.id ?? null;
+        if (!userId) return;
+        const headerBag = ctx.headers ?? ctx.request?.headers;
+        await logAudit({
+          userId,
+          action: AuditAction.USER_PASSWORD_CHANGE,
+          entityType: "user",
+          entityId: userId,
+          // Intentionally no old/new value — password values must never be stored.
+          request: headerBag ? { headers: headerBag } : undefined,
+        });
+      } catch (error) {
+        console.error("Password-change audit hook failed", error);
+      }
+    }),
+  },
 
   session: {
     deferSessionRefresh: true,

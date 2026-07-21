@@ -9,6 +9,8 @@ import {
 import { auth } from "@/lib/auth";
 import { getAssignedCampIds } from "@/lib/contributions/access";
 import { buildReceiptUpdate, confirmSchema } from "@/lib/contributions/receipt";
+import { AuditAction, logAudit } from "@/lib/audit";
+import { notifyProviderOfReceipt } from "@/lib/notifications/service";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -146,6 +148,18 @@ export async function PATCH(
       .update(aidContributionLine)
       .set(decision.updates)
       .where(eq(aidContributionLine.id, lineId));
+
+    // Accountability + notify the owning provider (best-effort).
+    await logAudit({
+      userId: session.user.id,
+      action: AuditAction.RECEIPT_STATUS_CHANGE,
+      entityType: "contribution_line",
+      entityId: lineId,
+      oldValue: { status: scoped.line.status },
+      newValue: { status: decision.updates.status },
+      request,
+    });
+    await notifyProviderOfReceipt(lineId);
 
     return NextResponse.json({ success: true, status: decision.updates.status });
   } catch (error) {

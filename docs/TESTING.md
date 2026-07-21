@@ -3,7 +3,7 @@
 **System:** Unified IDP Camp Management System
 **Area:** Test strategy, automated test suite, manual test plan, requirements traceability
 **Owner:** Bahaa Abushrar — Test & Project Manager
-**Status:** 113 automated tests, all passing
+**Status:** 128 automated tests, all passing
 
 ---
 
@@ -43,8 +43,8 @@ Testing runs on three layers:
 
 | Layer | What it answers | Count | Where |
 |---|---|---|---|
-| **Unit** | Is a business rule correct in isolation? | 58 | `tests/unit/` |
-| **Integration** | Is the rule actually enforced by the endpoint, for the right roles, at the right time? | 55 | `tests/integration/` |
+| **Unit** | Is a business rule correct in isolation? | 64 | `tests/unit/` |
+| **Integration** | Is the rule actually enforced by the endpoint, for the right roles, at the right time? | 64 | `tests/integration/` |
 | **Manual** | Does the workflow hold together for a real user in a browser? | see §8 | §8 |
 
 The split between unit and integration is deliberate, and the receipt-confirmation
@@ -78,12 +78,15 @@ Expected output:
  ✓ tests/unit/receipt-rules.test.ts        (17 tests)
  ✓ tests/unit/constants.test.ts            (12 tests)
  ✓ tests/unit/format-number.test.ts         (9 tests)
+ ✓ tests/unit/audit-redaction.test.ts       (6 tests)
  ✓ tests/integration/incoming-aid.test.ts  (18 tests)
  ✓ tests/integration/contributions.test.ts (20 tests)
  ✓ tests/integration/admin-boundaries.test.ts (17 tests)
+ ✓ tests/integration/audit-logs.test.ts     (4 tests)
+ ✓ tests/integration/notifications.test.ts  (5 tests)
 
- Test Files  7 passed (7)
-      Tests  113 passed (113)
+ Test Files  10 passed (10)
+      Tests  128 passed (128)
    Duration  ~1.6s
 ```
 
@@ -219,7 +222,7 @@ and `tsc --noEmit` both pass against it.
 
 ---
 
-## 5. Unit tests (58)
+## 5. Unit tests (64)
 
 ### 5.1 `tests/unit/permissions.test.ts` — role matrix (20)
 
@@ -358,9 +361,31 @@ Both formatters pin a locale (`"en"` / `"en-US"`) rather than relying on the
 host default, so these tests also protect the output from changing when the
 suite runs on a machine with different regional settings.
 
+### 5.5 `tests/unit/audit-redaction.test.ts` — audit redaction (6)
+
+Covers `redactSensitive` and `requestMeta` from `src/lib/audit`. Phase 06's one
+non-negotiable rule is that **password values must never reach the audit log**.
+`redactSensitive` is the guardrail every snapshot passes through before insert,
+so it is tested in isolation — no database, no session.
+
+| ID | Verifies |
+|---|---|
+| UT-AUD-01 | Password-like fields are stripped regardless of casing or `_`/`-` separators (`newPassword`, `current_password`, `confirm-password`, `passwordHash`) |
+| UT-AUD-02 | Tokens and secrets nested inside objects and arrays are redacted recursively |
+| UT-AUD-03 | Non-sensitive scalars and structures pass through untouched |
+| UT-AUD-04 | The exported action list is stable and non-empty (the UI filter depends on it) |
+| UT-AUD-05 | `requestMeta` takes the first `x-forwarded-for` hop and reads the user agent |
+| UT-AUD-06 | `requestMeta` returns nulls when no request is supplied |
+
+UT-AUD-01 is the phase acceptance criterion "password change audit log does not
+include old/new password" reduced to its essence. The password-change audit
+entry additionally carries **no** old/new snapshot at all (the hook passes
+neither), so redaction is a second line of defence rather than the only one; the
+test asserts the guardrail works even when a caller does pass a value by mistake.
+
 ---
 
-## 6. Integration tests (55)
+## 6. Integration tests (64)
 
 ### 6.1 `tests/integration/incoming-aid.test.ts` — receipt endpoint (18)
 
@@ -513,6 +538,42 @@ prevents the conflict from ever existing.
 IT-PRV-11 confirms the workflow tolerates reality: providers are often
 registered offline, before their user account exists.
 
+### 6.4 `tests/integration/audit-logs.test.ts` — audit endpoint (4)
+
+`GET /api/audit-logs` — phase 06 requires that **only the System Administrator**
+may read audit logs, enforced server-side.
+
+| ID | Scenario | Expected |
+|---|---|---|
+| IT-AUD-01 | Anonymous request | 401, and no query is run |
+| IT-AUD-02 | **Each** of the five non-admin roles requests the log | 403, and no query is run |
+| IT-AUD-03 | Administrator requests the log | 200; entries returned |
+| IT-AUD-04 | A full page is returned | keyset cursor emitted for the next page |
+
+IT-AUD-02 enumerates the non-admin roles in a loop rather than spot-checking one,
+matching the pattern used for role assignment (IT-USR-02): a role added to the
+enum without a matching decision is exactly the gap this catches. The audit log
+records who did what, so read access to it is itself a sensitive capability.
+
+### 6.5 `tests/integration/notifications.test.ts` — notification endpoints (5)
+
+`GET /api/notifications` and `PATCH /api/notifications/[id]/read`. Phase 06
+requires that notifications **respect scope**: a user only ever sees and mutates
+rows addressed to their own id.
+
+| ID | Scenario | Expected |
+|---|---|---|
+| IT-NOT-01 | Anonymous list request | 401, no query |
+| IT-NOT-02 | Authenticated list request | 200; caller's items + unread count |
+| IT-NOT-03 | Anonymous mark-as-read | 401, no query |
+| IT-NOT-04 | Marking own unread notification | 200; one scoped `UPDATE` issued |
+| IT-NOT-05 | Marking another user's notification | 404 (the userId-scoped `WHERE` matches nothing) |
+
+IT-NOT-05 is the scope boundary. `markNotificationRead` filters the `UPDATE` on
+both the notification id **and** the caller's user id, so a request for a row
+that belongs to someone else affects zero rows and returns 404 — the caller
+cannot even confirm the notification exists, let alone mutate it.
+
 ---
 
 ## 7. Requirements traceability
@@ -576,13 +637,36 @@ maps those criteria to the tests that verify them.
 | Non-admin cannot access the admin dashboard | — | **Gap — see §11** |
 | Dashboard statistics are scoped by role | — | **Gap — see §11** |
 
-### Phases 04 & 06 — Complaints, Audit & Notifications
+### Phase 06 — Audit Logs, Notifications & Hardening
 
-Not implemented. `complaintType`, `complaintStatus` and `notificationStatus`
-exist in `src/db/schema/enums.ts`, and their parity with the constants list is
-tested (UT-CST-07, 08, 09), but there are no tables, routes or UI behind them.
-There is nothing further to test until those phases are built. This is a scope
-status, not a defect.
+| Requirement | Tests | Status |
+|---|---|---|
+| Only the System Administrator can view audit logs | IT-AUD-01, IT-AUD-02, IT-AUD-03, UT-PRM-19 | Automated |
+| Password change audit log excludes old/new password values | UT-AUD-01, UT-AUD-03 | Automated |
+| Audit failures never break the action or expose sensitive data | UT-AUD-01 … 06 (redaction), best-effort `logAudit` | Automated + design |
+| Admin filters audit logs by action | IT-AUD-03 (route accepts `?action=`), MT-AUD-09 | Automated + Manual |
+| Aid submission creates an audit log + notifies Camp Managers | MT-AUD-10 | Manual — see §11 |
+| Receipt status change creates an audit log + notifies the provider | MT-AUD-11 | Manual — see §11 |
+| Authenticated user sees only their own notifications | IT-NOT-01, IT-NOT-02 | Automated |
+| A user can mark a notification as read | IT-NOT-04 | Automated |
+| A user cannot mutate another user's notification | IT-NOT-05 | Automated |
+| Notification link opens the relevant record | MT-AUD-12 | Manual |
+| Final build passes | `npx tsc --noEmit`, `pnpm build` | Automated |
+
+The end-to-end audit-write and notification-delivery paths (a real submission
+producing both an audit row and an unread notification for the right recipient)
+are wired into the submit and receipt routes as best-effort side effects and are
+verified by the manual cases MT-AUD-10 … 12. The unit and integration tests
+cover the two things that must be exact regardless of delivery: **who may read**
+the audit log and notifications, and **that no password value is ever stored**.
+
+### Phase 04 — Complaints
+
+Complaint tables, the public submission/tracking flow, and the manager status
+workflow are implemented (`src/db/schema/complaints.ts`, `src/lib/actions/complaints.ts`).
+The status-change path now also writes an audit entry (`complaint.status_change`).
+Server-side authorization on the complaint status action is currently covered by
+the manual plan; extracting it to an integration test is a candidate (see §11).
 
 ---
 
@@ -635,6 +719,21 @@ column. Any failure gets an entry in §9 before it is fixed.
 | MT-AID-06 | Try a partial receipt equal to the planned quantity | Blocked with a clear message | |
 | MT-AID-07 | Reject a line with a reason | Status → rejected; reason stored and shown | |
 | MT-AID-08 | As the provider, re-open the contribution after confirmation | Confirmed statuses are visible; contribution not editable | |
+
+### Audit & notifications (MT-AUD)
+
+| ID | Steps | Expected | Result |
+|---|---|---|---|
+| MT-AUD-09 | As admin, open `/dashboard/audit-logs` and filter by an action | Only matching entries shown; details expandable | |
+| MT-AUD-10 | As a provider, submit a contribution; then as the assigned Camp Manager, open notifications | Manager has an unread "New aid submitted"; an audit row exists | |
+| MT-AUD-11 | As Camp Manager, confirm a receipt; then as the provider, open notifications | Provider has an unread "Receipt status updated"; an audit row exists | |
+| MT-AUD-12 | Click a notification's link | Opens the relevant contribution / incoming-aid record; item becomes read | |
+| MT-AUD-13 | As Camp Manager, navigate directly to `/dashboard/audit-logs` | Redirected away — no access | |
+| MT-AUD-14 | Change a password, then as admin inspect the audit log | A `user.password_change` row exists with **no** password value in any column | |
+
+MT-AUD-14 is the manual counterpart to UT-AUD-01: it confirms the guarantee end
+to end, against the real better-auth change-password flow and the real table,
+not just the redaction helper in isolation.
 
 ### Cross-role checks (MT-SEC)
 
@@ -765,7 +864,38 @@ assignment) still passed, correctly — the mutation did not affect that path.
 This is the behaviour a suite should have: a targeted failure that names the
 broken rule, rather than a wall of red.
 
-Both mutations were reverted. The suite is green at 113/113.
+Both mutations were reverted. The suite is green at 128/128.
+
+### 9.3 Broken route-group import path (fixed)
+
+**Found by:** `npx tsc --noEmit` during phase 06 hardening
+**Severity:** High — breaks `tsc` and `pnpm build`
+**Status:** Fixed
+
+`src/app/(with-layout)/dashboard/camp-manager/page.tsx` imported the shared
+dashboard fetchers as:
+
+```ts
+import { getCampManagerStats } from "../(home)/fetch";
+```
+
+From `dashboard/camp-manager/`, `../` resolves to `dashboard/`, so `../(home)`
+points at `dashboard/(home)` — which does not exist. The file lives at
+`(with-layout)/(home)/fetch.ts`, one level higher, so the import must be
+`../../(home)/fetch`. Route-group folders (`(home)`) are real directories for
+module resolution even though Next.js omits them from the URL, which is what
+makes this easy to miscount.
+
+```
+src/app/(with-layout)/dashboard/camp-manager/page.tsx(4,37):
+  error TS2307: Cannot find module '../(home)/fetch'
+```
+
+The error predates phase 06 — it was committed with the phase 05 dashboard work
+and slipped through because the failing typecheck/build step was not run. It is
+recorded here because the phase 06 acceptance criterion "final build passes"
+required fixing it, and because it is the second instance (after §9.1) of a
+verification step being skipped and letting a fault land on `main`.
 
 ---
 
@@ -841,7 +971,17 @@ Listed so they are decisions rather than oversights, in rough priority order.
    removed; it fails with "Invalid project directory". This predates this work
    and is unrelated to testing, but it means the lint step in `CLAUDE.md`'s
    development method currently does nothing. It needs to become an `eslint`
-   invocation.
+   invocation. **Interim:** phase 06 files were linted directly with
+   `ESLINT_USE_FLAT_CONFIG=false eslint <paths>` (ESLint 9 against the legacy
+   `.eslintrc.json`) and pass clean; the script itself is still to be fixed.
+9. **Audit-write and notification-delivery side effects are covered manually,
+   not automatically.** `logAudit`, `notifyCampManagersOfSubmission` and
+   `notifyProviderOfReceipt` are best-effort side effects fired after the primary
+   write in the submit/receipt routes. The tests assert the read-side scope
+   (IT-AUD-\*, IT-NOT-\*) and redaction (UT-AUD-\*); the fan-out logic
+   (which recipients, admin fallback for an unmanaged camp) rests on MT-AUD-10/11.
+   Extracting the recipient-resolution from the db writes would make it
+   unit-testable, as §4.4 did for the receipt rules.
 
 ---
 
@@ -878,6 +1018,8 @@ manual plan.
 | Test helpers added | `tests/helpers/db-mock.ts`, `tests/helpers/auth-mock.ts` |
 | `src/lib/contributions/receipt.ts` extracted | Receipt rules moved out of the route handler; behaviour unchanged |
 | **Defect fixed:** `USER_ROLES` | Aligned with the `user_role` enum; see §9.1 |
+| Phase 06 tests added (+15) | 6 unit (`audit-redaction`), 9 integration (`audit-logs`, `notifications`); 64 unit / 64 integration total |
+| **Defect fixed:** camp-manager import path | `../(home)/fetch` → `../../(home)/fetch`; the route group path resolved to a non-existent directory and broke `tsc`/`build`. See §9.3 |
 
-**Verification:** `pnpm test` → 113/113 passing · `npx tsc --noEmit` → clean ·
+**Verification:** `pnpm test` → 128/128 passing · `npx tsc --noEmit` → clean ·
 `pnpm build` → succeeds.

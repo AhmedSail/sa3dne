@@ -9,6 +9,7 @@ import { eq, inArray, desc, and, or, ilike, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { submitComplaintSchema, trackComplaintSchema, updateComplaintSchema } from "@/lib/validations/complaint";
+import { AuditAction, logAudit } from "@/lib/audit";
 import { z } from "zod";
 
 function generateTrackingNumber() {
@@ -182,6 +183,17 @@ export async function updateComplaintStatus(id: string, data: z.infer<typeof upd
         reviewedAt: new Date(),
       })
       .where(eq(complaints.id, id));
+
+    const reqHeaders = await headers();
+    await logAudit({
+      userId: session.user.id,
+      action: AuditAction.COMPLAINT_STATUS_CHANGE,
+      entityType: "complaint",
+      entityId: id,
+      oldValue: { status: complaint.status },
+      newValue: { status: parsed.data.status },
+      request: { headers: reqHeaders },
+    });
 
     revalidatePath("/dashboard/complaints");
     revalidatePath(`/dashboard/complaints/${id}`);
