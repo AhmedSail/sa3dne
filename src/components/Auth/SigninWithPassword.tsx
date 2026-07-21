@@ -1,6 +1,7 @@
 "use client";
 
 import { authClient } from "@/lib/auth/auth-client";
+import { useLanguage } from "@/lib/i18n/language-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -8,6 +9,7 @@ import { toast } from "sonner";
 
 export default function SigninWithPassword() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [data, setData] = useState({
     email: "",
     password: "",
@@ -34,11 +36,11 @@ export default function SigninWithPassword() {
     setLoading(false);
 
     if (error) {
-      toast.error("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      toast.error(t("signInError"));
       return;
     }
 
-    router.push("/");
+    router.push("/dashboard");
     router.refresh();
   };
 
@@ -49,7 +51,7 @@ export default function SigninWithPassword() {
           htmlFor="email"
           className="mb-1.5 block text-sm font-medium text-dark dark:text-white"
         >
-          البريد الإلكتروني
+          {t("emailLabel")}
         </label>
         <input
           id="email"
@@ -59,7 +61,7 @@ export default function SigninWithPassword() {
           value={data.email}
           onChange={handleChange}
           placeholder="example@sa3dne.com"
-          className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none transition-all focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-[#10b981]"
         />
       </div>
 
@@ -68,7 +70,7 @@ export default function SigninWithPassword() {
           htmlFor="password"
           className="mb-1.5 block text-sm font-medium text-dark dark:text-white"
         >
-          كلمة المرور
+          {t("passwordLabel")}
         </label>
         <input
           id="password"
@@ -78,19 +80,22 @@ export default function SigninWithPassword() {
           value={data.password}
           onChange={handleChange}
           placeholder="••••••••"
-          className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none transition-all focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-[#10b981]"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="hover:bg-opacity-90 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary p-4 font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-70"
+        className="group relative flex w-full cursor-pointer items-center justify-center gap-3 overflow-hidden rounded-xl bg-[#10b981] px-6 py-4 text-sm font-black text-white shadow-[0_4px_20px_rgba(16,185,129,0.3)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#059669] hover:shadow-[0_8px_30px_rgba(16,185,129,0.4)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? (
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-t-transparent" />
+          <>
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-t-transparent" />
+            جاري تسجيل الدخول...
+          </>
         ) : (
-          "تسجيل الدخول"
+          t("signInButton")
         )}
       </button>
     </form>

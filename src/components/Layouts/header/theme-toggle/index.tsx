@@ -1,3 +1,4 @@
+"use client";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme/theme-context";
 import { useEffect, useState } from "react";
@@ -29,9 +30,14 @@ export function ThemeToggleSwitch() {
   }
 
   const isDark = theme === "dark";
-  const translateClass = dir === "rtl"
-    ? (isDark ? "translate-x-0" : "translate-x-12")
-    : (isDark ? "translate-x-12" : "translate-x-0");
+  const translateClass =
+    dir === "rtl"
+      ? isDark
+        ? "translate-x-0"
+        : "translate-x-12"
+      : isDark
+        ? "translate-x-12"
+        : "translate-x-0";
 
   return (
     <button
@@ -47,7 +53,7 @@ export function ThemeToggleSwitch() {
         <span
           className={cn(
             "absolute left-0 size-9.5 rounded-full border border-gray-200 bg-white transition-all dark:border-none dark:bg-dark-2 dark:group-hover:bg-dark-3",
-            translateClass
+            translateClass,
           )}
         />
 

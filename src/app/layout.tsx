@@ -13,11 +13,28 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | NextAdmin - Next.js Dashboard Kit",
-    default: "NextAdmin - Next.js Dashboard Kit",
+    template: "%s | ساعدني - Sa3dne",
+    default: "ساعدني - Sa3dne | منصة إدارة مخيمات النازحين",
   },
-  description:
-    "Next.js admin dashboard toolkit with 200+ templates, UI components, and integrations for fast dashboard development.",
+  description: "نظام متكامل لإدارة المخيمات وتتبع المساعدات الإنسانية وضمان الشفافية والمساءلة. ساعدني يوفر بيئة تقنية متطورة لخدمة النازحين وتلبية احتياجاتهم.",
+  keywords: ["مخيمات النازحين", "إدارة المخيمات", "المساعدات الإنسانية", "فلسطين", "غزة", "ساعدني", "Sa3dne", "إدارة المساعدات", "شكاوى", "مقترحات"],
+  authors: [{ name: "Sa3dne Team" }],
+  openGraph: {
+    title: "ساعدني - Sa3dne | منصة إدارة المخيمات",
+    description: "نظام متكامل لإدارة المخيمات وتتبع المساعدات الإنسانية وضمان الشفافية.",
+    url: "https://sa3dne.com",
+    siteName: "ساعدني - Sa3dne",
+    locale: "ar_PS",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ساعدني - Sa3dne",
+    description: "نظام متكامل لإدارة المخيمات وتتبع المساعدات الإنسانية وضمان الشفافية.",
+  },
+  icons: {
+    icon: "/icon.png",
+  }
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {

@@ -37,6 +37,98 @@ export const translations = {
     success: "تمت العملية بنجاح",
     error: "حدث خطأ ما",
 
+    // Auth Page
+    authSignInTitle: "تسجيل الدخول إلى حسابك",
+    authSignInSubtitle: "مرحباً بك مجدداً!",
+    authSignInDesc: "نصنع الأمل معاً... يرجى تسجيل الدخول إلى حسابك للمتابعة والمساهمة في بناء مجتمع أفضل.",
+    
+    authSignUpTitle: "إنشاء حساب جديد",
+    authSignUpSubtitle: "ابدأ رحلتك معنا",
+    authSignUpDesc: "انضم إلينا الآن وكن جزءاً من رسالتنا الإنسانية. أنشئ حسابك للبدء.",
+
+    // Sign-in form
+    emailLabel: "البريد الإلكتروني",
+    passwordLabel: "كلمة المرور",
+    signInButton: "تسجيل الدخول",
+    signInError: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    signUpLinkText: "إنشاء حساب جديد",
+    noAccountQuestion: "ليس لديك حساب؟",
+    haveAccountQuestion: "لديك حساب بالفعل؟",
+    signInLinkText: "تسجيل الدخول",
+
+    // Sign-up form
+    nameLabel: "الاسم الكامل",
+    namePlaceholder: "أدخل اسمك",
+    emailPlaceholder: "أدخل بريدك الإلكتروني",
+    passwordPlaceholder: "أنشئ كلمة مرور",
+    signUpButton: "إنشاء حساب",
+    orSignUpWith: "أو سجّل باستخدام البريد الإلكتروني",
+    signUpSuccess: "تم إنشاء الحساب بنجاح",
+    signUpError: "فشل إنشاء الحساب",
+
+    // Landing Page
+    landingHeroTitle: "منصة إدارة مخيمات النازحين",
+    landingHeroSubtitle: "نظام متكامل لإدارة المخيمات، تتبع المساعدات الإنسانية، وضمان الشفافية والمساءلة.",
+    landingTrackBtn: "تتبع شكوى أو مقترح",
+    landingSubmitBtn: "تقديم شكوى أو مقترح",
+    landingStatCamps: "مخيم مدار",
+    landingStatFamilies: "عائلة مسجلة",
+    landingStatIndividuals: "فرد مستفيد",
+    landingStatContributions: "مساهمة إنسانية",
+    landingFeaturesTitle: "لماذا ساعدنا؟",
+    landingFeature1Title: "إدارة مركزية",
+    landingFeature1Desc: "إدارة جميع المخيمات والعائلات والموارد من منصة واحدة موحدة.",
+    landingFeature2Title: "شفافية كاملة",
+    landingFeature2Desc: "تتبع كل مساهمة إنسانية من لحظة التقديم حتى وصولها للمخيم.",
+    landingFeature3Title: "تقارير فورية",
+    landingFeature3Desc: "لوحات تحكم وتقارير تفصيلية لدعم القرار وتحديد الأولويات.",
+    landingFeature4Title: "شكاوى عامة",
+    // Header & Mockup Landing
+    landingHomeLink: "الرئيسية",
+    landingFeaturesLink: "المميزات",
+    landingHowItWorksLink: "آلية العمل",
+    landingContactLink: "تواصل معنا",
+    landingLoginBtn: "تسجيل الدخول",
+    landingDashboardBtn: "لوحة التحكم",
+
+    // Hero
+    mockupHeroBadge: "المنصة الموحدة لإدارة المساعدات",
+    mockupHeroTitle1: "ربط المبادرات",
+    mockupHeroTitle2: "بالمخيمات المحتاجة",
+    mockupHeroSub: "منصة \"ساعدني\" تنظم عملية إيصال المساعدات للنازحين بشفافية وعدالة، لتكون جسراً موثوقاً بين المتبرعين والمخيمات.",
+    mockupStartBtn: "ابدأ معنا الآن",
+    mockupHowBtn: "كيف تعمل المنصة؟",
+
+    // Why Sa3dne
+    mockupWhyTitle: "لماذا منصة \"ساعدني\"؟",
+    mockupFeat1Title: "تنسيق المساعدات",
+    mockupFeat1Desc: "تحديد المخيمات المحتاجة للمساعدات بدقة وتوزيع المساعدات بشكل منظم وموثق بطريقة سهلة.",
+    mockupFeat2Title: "تأكيد الاستلام",
+    mockupFeat2Desc: "نظام دقيق لتتبع كل مساهمة وتأكيد استلام المساعدات بالكميات الفعلية لضمان الشفافية العالية.",
+    mockupFeat3Title: "إحصائيات ذكية",
+    mockupFeat3Desc: "لوحات تحكم ذكية للأداء توفر رؤية شاملة حول احتياجات المخيمات لدعم اتخاذ القرار.",
+
+    // How it works
+    mockupHowTitle: "آلية العمل في المنصة",
+    mockupHowSub: "خطوات بسيطة وفعالة في بيئة عمل متطورة تربط بين مقدمي المساعدات والمخيمات.",
+    mockupStep1Title: "تسجيل الجهة المانحة",
+    mockupStep1Desc: "تقوم المؤسسة بإنشاء حساب، وتحديد المساعدات المراد توفيرها، وتوثيق هويتها.",
+    mockupStep2Title: "توجيه الدعم للمخيمات",
+    mockupStep2Desc: "تداول ذكي لاحتياجات المخيمات يسهل عملية استهداف المخيمات الأكثر تضرراً.",
+    mockupStep3Title: "تأكيد الاستلام بشفافية",
+    mockupStep3Desc: "استلام إشعارات فورية وتقارير بتأكيد وصول المساعدات لمدراء المخيمات.",
+
+    // CTA
+    mockupCtaTitle: "كن جزءاً من التغيير الإيجابي",
+    mockupCtaDesc: "انضم إلى المنصة الرائدة في إدارة المخيمات وتنسيق المساعدات، لنعمل معاً على إيصال الدعم لمن يستحقه بكل شفافية ومصداقية.",
+    mockupCreateAccountBtn: "إنشاء حساب مجاني",
+
+    // Footer
+    mockupTerms: "الشروط والأحكام",
+    mockupPrivacy: "سياسة الخصوصية",
+    mockupGradProject: "مشروع تخرج - نظام إدارة مخيمات النازحين",
+    mockupCopyright: "© 2026 منصة ساعدني. جميع الحقوق محفوظة.",
+
     // Camps Module
     campsList: "قائمة المخيمات",
     addCamp: "إضافة مخيم جديد",
@@ -239,6 +331,7 @@ export const translations = {
     allActions: "جميع الإجراءات",
     loadMore: "تحميل المزيد",
     system: "النظام",
+    myProfile: "ملفي الشخصي",
   },
   en: {
     // Navigation & General
@@ -277,6 +370,98 @@ export const translations = {
     no: "No",
     success: "Operation successful",
     error: "An error occurred",
+
+    // Auth Page
+    authSignInTitle: "Sign in to your account",
+    authSignInSubtitle: "Welcome Back!",
+    authSignInDesc: "Together we create hope... Please sign in to your account to continue and contribute to building a better community.",
+    
+    authSignUpTitle: "Create your account",
+    authSignUpSubtitle: "Start your journey",
+    authSignUpDesc: "Join us now and be part of our humanitarian mission. Create your account to begin.",
+
+    // Sign-in form
+    emailLabel: "Email Address",
+    passwordLabel: "Password",
+    signInButton: "Sign In",
+    signInError: "Invalid email or password",
+    signUpLinkText: "Create an Account",
+    noAccountQuestion: "Don't have an account?",
+    haveAccountQuestion: "Already have an account?",
+    signInLinkText: "Sign In",
+
+    // Sign-up form
+    nameLabel: "Full Name",
+    namePlaceholder: "Enter your name",
+    emailPlaceholder: "Enter your email",
+    passwordPlaceholder: "Create a password",
+    signUpButton: "Create Account",
+    orSignUpWith: "Or sign up with email",
+    signUpSuccess: "Account created successfully",
+    signUpError: "Sign up failed",
+
+    // Landing Page
+    landingHeroTitle: "IDP Camp Management Platform",
+    landingHeroSubtitle: "A unified system to manage displacement camps, track humanitarian aid contributions, and ensure full transparency and accountability.",
+    landingTrackBtn: "Track a Complaint",
+    landingSubmitBtn: "Submit a Complaint",
+    landingStatCamps: "Managed Camps",
+    landingStatFamilies: "Registered Families",
+    landingStatIndividuals: "Beneficiaries",
+    landingStatContributions: "Aid Contributions",
+    landingFeaturesTitle: "Why Sa3dne?",
+    landingFeature1Title: "Centralized Management",
+    landingFeature1Desc: "Manage all camps, families, and resources from a single unified platform.",
+    landingFeature2Title: "Full Transparency",
+    landingFeature2Desc: "Track every humanitarian contribution from submission to camp delivery.",
+    landingFeature3Title: "Instant Reports",
+    landingFeature3Desc: "Rich dashboards and detailed reports to support decision-making and priority setting.",
+    landingFeature4Title: "Public Complaints",
+    // Header & Mockup Landing
+    landingHomeLink: "Home",
+    landingFeaturesLink: "Features",
+    landingHowItWorksLink: "How it works",
+    landingContactLink: "Contact Us",
+    landingLoginBtn: "Log in",
+    landingDashboardBtn: "Dashboard",
+
+    // Hero
+    mockupHeroBadge: "The Unified Platform for Aid Management",
+    mockupHeroTitle1: "Connecting Initiatives",
+    mockupHeroTitle2: "With Camps in Need",
+    mockupHeroSub: "Sa3dne platform organizes the process of delivering aid to displaced persons with transparency and fairness, acting as a reliable bridge between donors and camps.",
+    mockupStartBtn: "Start With Us Now",
+    mockupHowBtn: "How does it work?",
+
+    // Why Sa3dne
+    mockupWhyTitle: "Why Sa3dne Platform?",
+    mockupFeat1Title: "Coordinating Aid",
+    mockupFeat1Desc: "Accurately identify camps in need of aid and distribute aid in an organized, documented, flexible, and easy manner.",
+    mockupFeat2Title: "Confirming Receipt",
+    mockupFeat2Desc: "An accurate system to track every contribution and confirm receipt of aid in actual quantities to ensure high transparency.",
+    mockupFeat3Title: "Smart Statistics",
+    mockupFeat3Desc: "Smart performance dashboards providing comprehensive insight into camp needs to support decision making.",
+
+    // How it works
+    mockupHowTitle: "How the Platform Works",
+    mockupHowSub: "Simple and effective steps in an advanced work environment connecting aid providers and camps.",
+    mockupStep1Title: "Donor Registration",
+    mockupStep1Desc: "The organization creates an account, specifies the aid to be provided, and documents its identity.",
+    mockupStep2Title: "Directing Support to Camps",
+    mockupStep2Desc: "Smart trading of camp needs facilitates the process of targeting the most affected camps.",
+    mockupStep3Title: "Confirming Receipt Transparently",
+    mockupStep3Desc: "Receiving instant notifications and reports confirming the arrival of aid to camp managers.",
+
+    // CTA
+    mockupCtaTitle: "Be Part of the Positive Change",
+    mockupCtaDesc: "Join the leading platform in camp management and aid coordination. Let's work together to deliver support to those who deserve it with full transparency and credibility.",
+    mockupCreateAccountBtn: "Create a Free Account",
+
+    // Footer
+    mockupTerms: "Terms and Conditions",
+    mockupPrivacy: "Privacy Policy",
+    mockupGradProject: "Graduation Project - IDP Camps Management System",
+    mockupCopyright: "© 2026 Sa3dne Platform. All rights reserved.",
 
     // Camps Module
     campsList: "Camps List",
@@ -480,6 +665,7 @@ export const translations = {
     allActions: "All Actions",
     loadMore: "Load more",
     system: "System",
+    myProfile: "My Profile",
   },
 };
 

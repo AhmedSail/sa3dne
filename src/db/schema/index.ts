@@ -14,3 +14,4 @@ export * from "./contributions";
 export * from "./complaints";
 export * from "./audit-logs";
 export * from "./notifications";
+export * from "./settings";

@@ -8,7 +8,7 @@ export const NAV_DATA = [
         title: "Dashboard",
         langKey: "dashboard",
         icon: Icons.HomeIcon,
-        url: "/",
+        url: "/dashboard",
         items: [],
       },
       {
@@ -119,6 +119,11 @@ export const NAV_DATA = [
         icon: Icons.Alphabet,
         adminOnly: true,
         items: [
+          {
+            title: "Contact Settings",
+            langKey: "contactSettings",
+            url: "/dashboard/settings/contact",
+          },
           {
             title: "Change Password",
             langKey: "changePassword",
