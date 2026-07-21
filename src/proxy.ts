@@ -10,7 +10,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const callbackUrl = `${pathname}${request.nextUrl.search}`;
   const isAuthOnly = AUTH_ONLY_PATHS.some((path) => pathname.startsWith(path));
-  const isPublic = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
+  const isPublic = pathname === "/" || PUBLIC_PATHS.some((path) => pathname.startsWith(path));
 
   // Allow public paths without any cookie check
   if (isPublic) {
