@@ -48,7 +48,7 @@ export default function CampNeedsClient({ data, canEdit }: { data: CampData[], c
       </div>
 
       <div className="max-w-full overflow-x-auto">
-        <table className="w-full table-auto">
+        <table className="w-full table-auto whitespace-nowrap">
           <thead>
             <tr className="bg-gray-2 text-left dark:bg-dark-2">
               <th className="px-4 py-4 font-medium text-dark dark:text-white xl:pl-11">

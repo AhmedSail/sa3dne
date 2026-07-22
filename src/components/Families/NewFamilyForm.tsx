@@ -63,8 +63,12 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
       toast.error(language === "ar" ? "يجب إدخال اسم رب الأسرة بشكل صحيح" : "Family head name must be at least 2 characters");
       return;
     }
-    if (!form.nationalId || form.nationalId.trim().length < 4) {
-      toast.error(language === "ar" ? "رقم الهوية غير صالح" : "A valid national ID is required");
+    if (!form.nationalId || form.nationalId.trim().length !== 9) {
+      toast.error(language === "ar" ? "رقم الهوية يجب أن يكون 9 أرقام بالضبط" : "National ID must be exactly 9 digits");
+      return;
+    }
+    if (!form.phone || form.phone.trim().length < 7) {
+      toast.error(language === "ar" ? "رقم الجوال مطلوب" : "Phone number is required");
       return;
     }
     setStep(2);
@@ -226,19 +230,27 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
                       type="text"
                       name="nationalId"
                       required
+                      maxLength={9}
+                      inputMode="numeric"
+                      pattern="[0-9]{9}"
                       value={form.nationalId}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 9);
+                        setForm((prev) => ({ ...prev, nationalId: val }));
+                      }}
+                      placeholder={language === "ar" ? "9 أرقام" : "9 digits"}
                       className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
                     />
                   </div>
 
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-                      {t("phone")}
+                      {t("phone")} *
                     </label>
                     <input
                       type="tel"
                       name="phone"
+                      required
                       value={form.phone}
                       onChange={handleChange}
                       placeholder="+966501234567"
@@ -271,11 +283,13 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
                       name="memberCount"
                       required
                       min={1}
-                      disabled
                       value={form.memberCount}
                       onChange={handleChange}
-                      className="w-full rounded-lg border border-stroke bg-transparent bg-gray-2 px-4 py-3 text-sm outline-none dark:border-dark-3 dark:bg-dark-2 dark:text-white opacity-70 cursor-not-allowed"
+                      className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
                     />
+                    <p className="mt-1 text-xs text-dark-5 dark:text-dark-6">
+                      {language === "ar" ? "يتم التحديث تلقائياً عند إضافة الأفراد" : "Auto-updated when adding members"}
+                    </p>
                   </div>
                 </div>
 
@@ -381,8 +395,10 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
                             <input
                               type="text"
                               value={m.nationalId}
+                              maxLength={9}
+                              inputMode="numeric"
                               onChange={(e) => {
-                                const val = e.target.value;
+                                const val = e.target.value.replace(/\D/g, "").slice(0, 9);
                                 setMembers((prev) =>
                                   prev.map((item) =>
                                     item.id === m.id ? { ...item, nationalId: val } : item,

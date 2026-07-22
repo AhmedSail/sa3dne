@@ -2,14 +2,15 @@ import Image from "next/image";
 
 export function Logo() {
   return (
-    <div className="relative flex items-center">
+    <div className="mx-auto flex items-center justify-center">
       <Image
         src="/images/logo/logo.png"
         alt="Sa3dne logo"
-        width={240}
-        height={240}
+        width={200}
+        height={100}
         quality={100}
-        className="object-contain"
+        className="h-auto w-full object-contain"
+        priority
       />
     </div>
   );

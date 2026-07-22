@@ -216,11 +216,11 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
 
       {/* 4. Complaints Status Breakdown */}
       <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5 flex items-center justify-between gap-4">
           <h2 className="text-lg font-bold text-dark dark:text-white">
             {isAr ? "حالة الشكاوى والمقترحات" : "Complaints Status Breakdown"}
           </h2>
-          <Link href="/dashboard/complaints" className="text-xs font-semibold text-primary hover:underline">
+          <Link href="/dashboard/complaints" className="text-xs font-semibold text-primary hover:underline whitespace-nowrap shrink-0">
             {isAr ? "عرض جميع الشكاوى" : "View all complaints"} &rarr;
           </Link>
         </div>
@@ -261,24 +261,24 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
 
       {/* 5. Camps Occupancy & Need Levels */}
       <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between gap-4">
           <h2 className="text-lg font-bold text-dark dark:text-white">
             {isAr ? "نسب إشغال المخيمات والاحتياج" : "Camp Occupancy & Need Levels"}
           </h2>
-          <Link href="/dashboard/camps" className="text-xs font-semibold text-primary hover:underline">
+          <Link href="/dashboard/camps" className="text-xs font-semibold text-primary hover:underline whitespace-nowrap shrink-0">
             {isAr ? "عرض جميع المخيمات" : "View all camps"} &rarr;
           </Link>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="border-b border-stroke text-xs font-semibold text-dark-4 dark:border-dark-3 dark:text-dark-6">
-                <th className="pb-3 text-start">{t("campName")}</th>
-                <th className="pb-3 text-start">{t("campLocation")}</th>
-                <th className="pb-3 text-center">{t("campNeedLevel")}</th>
-                <th className="pb-3 text-center">{isAr ? "العائلات المسجلة" : "Registered Families"}</th>
-                <th className="pb-3 text-end" style={{ minWidth: "140px" }}>{isAr ? "نسبة الإشغال" : "Occupancy Rate"}</th>
+                <th className="pb-3 px-4 text-start">{t("campName")}</th>
+                <th className="pb-3 px-4 text-start">{t("campLocation")}</th>
+                <th className="pb-3 px-4 text-center">{t("campNeedLevel")}</th>
+                <th className="pb-3 px-4 text-center">{isAr ? "العائلات المسجلة" : "Registered Families"}</th>
+                <th className="pb-3 px-4 text-end" style={{ minWidth: "140px" }}>{isAr ? "نسبة الإشغال" : "Occupancy Rate"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stroke text-sm text-dark dark:divide-dark-3 dark:text-white">
@@ -291,15 +291,15 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
               ) : (
                 data.campOccupancy.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-2/50 dark:hover:bg-dark-2/50">
-                    <td className="py-3.5 font-medium text-start">
+                    <td className="py-3.5 px-4 font-medium text-start">
                       <Link href={`/dashboard/camps/${c.id}`} className="hover:underline text-primary">
                         {c.name}
                       </Link>
                     </td>
-                    <td className="py-3.5 text-start text-xs text-dark-5 dark:text-dark-6 font-medium">
+                    <td className="py-3.5 px-4 text-start text-xs text-dark-5 dark:text-dark-6 font-medium">
                       {t(c.location as any)}
                     </td>
-                    <td className="py-3.5 text-center">
+                    <td className="py-3.5 px-4 text-center">
                       <span className={cn(
                         "inline-block rounded px-2.5 py-0.5 text-xs font-semibold uppercase",
                         c.needLevel === "critical" && "bg-red/10 text-red",
@@ -310,10 +310,10 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
                         {t(`needLevel${c.needLevel.charAt(0).toUpperCase() + c.needLevel.slice(1)}` as any)}
                       </span>
                     </td>
-                    <td className="py-3.5 text-center font-semibold">
+                    <td className="py-3.5 px-4 text-center font-semibold">
                       {c.familiesCount} / {c.capacity}
                     </td>
-                    <td className="py-3.5 text-end">
+                    <td className="py-3.5 px-4 text-end">
                       <div className="flex items-center justify-end gap-2.5">
                         <span className="text-xs font-semibold">{c.occupancyRate}%</span>
                         <div className="h-1.5 w-20 rounded-full bg-stroke dark:bg-dark-3 overflow-hidden">
@@ -337,24 +337,24 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
 
       {/* 6. Recent Registered Families */}
       <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between gap-4">
           <h2 className="text-lg font-bold text-dark dark:text-white">
             {isAr ? "آخر العائلات المسجلة" : "Recently Registered Families"}
           </h2>
-          <Link href="/dashboard/families" className="text-xs font-semibold text-primary hover:underline">
+          <Link href="/dashboard/families" className="text-xs font-semibold text-primary hover:underline whitespace-nowrap shrink-0">
             {isAr ? "عرض جميع العائلات" : "View all families"} &rarr;
           </Link>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="border-b border-stroke text-xs font-semibold text-dark-4 dark:border-dark-3 dark:text-dark-6">
-                <th className="pb-3 text-start">{t("headName")}</th>
-                <th className="pb-3 text-start">{t("nationalId")}</th>
-                <th className="pb-3 text-center">{t("memberCount")}</th>
-                <th className="pb-3 text-start">{t("camps")}</th>
-                <th className="pb-3 text-end">{isAr ? "تاريخ التسجيل" : "Registration Date"}</th>
+                <th className="pb-3 px-4 text-start">{t("headName")}</th>
+                <th className="pb-3 px-4 text-start">{t("nationalId")}</th>
+                <th className="pb-3 px-4 text-center">{t("memberCount")}</th>
+                <th className="pb-3 px-4 text-start">{t("camps")}</th>
+                <th className="pb-3 px-4 text-end">{isAr ? "تاريخ التسجيل" : "Registration Date"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stroke text-sm text-dark dark:divide-dark-3 dark:text-white">
@@ -367,15 +367,15 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
               ) : (
                 data.recentFamilies.map((f) => (
                   <tr key={f.id} className="hover:bg-gray-2/50 dark:hover:bg-dark-2/50">
-                    <td className="py-3 font-semibold text-start text-primary hover:underline">
+                    <td className="py-3 px-4 font-semibold text-start text-primary hover:underline">
                       <Link href={`/dashboard/families/${f.id}`}>{f.headName}</Link>
                     </td>
-                    <td className="py-3 text-start text-xs text-dark-5 dark:text-dark-6 font-mono">
+                    <td className="py-3 px-4 text-start text-xs text-dark-5 dark:text-dark-6 font-mono">
                       {f.nationalId}
                     </td>
-                    <td className="py-3 text-center font-semibold">{f.memberCount}</td>
-                    <td className="py-3 text-start text-xs text-dark-5 dark:text-dark-6">{f.campName}</td>
-                    <td className="py-3 text-end text-xs text-dark-4 dark:text-dark-6">
+                    <td className="py-3 px-4 text-center font-semibold">{f.memberCount}</td>
+                    <td className="py-3 px-4 text-start text-xs text-dark-5 dark:text-dark-6">{f.campName}</td>
+                    <td className="py-3 px-4 text-end text-xs text-dark-4 dark:text-dark-6">
                       {new Date(f.createdAt).toLocaleDateString(isAr ? "ar-EG" : "en-US", {
                         year: "numeric",
                         month: "short",

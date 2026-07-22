@@ -86,7 +86,7 @@ export default function CampsList({
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-dark dark:text-white">
             {t("campsList")}
@@ -100,7 +100,7 @@ export default function CampsList({
         {isAdmin && (
           <Link
             href="/dashboard/camps/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-opacity-90"
+            className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-opacity-90"
           >
             <span className="text-lg leading-none">+</span>
             {t("addCamp")}

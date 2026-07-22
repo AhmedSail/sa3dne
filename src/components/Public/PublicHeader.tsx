@@ -148,7 +148,7 @@ export default function PublicHeader() {
 
               <Link
                 href="/dashboard"
-                className="btn-glow inline-flex items-center justify-center rounded-xl bg-[#10b981] px-6 py-2.5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#059669] hover:shadow-[0_8px_25px_rgba(16,185,129,0.4)]"
+                className="btn-glow hidden items-center justify-center rounded-xl bg-[#10b981] px-6 py-2.5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#059669] hover:shadow-[0_8px_25px_rgba(16,185,129,0.4)] sm:inline-flex"
               >
                 {t("landingDashboardBtn")}
               </Link>
@@ -170,7 +170,7 @@ export default function PublicHeader() {
         {/* ── Mobile Menu ── */}
         <div
           className={`overflow-hidden border-t border-gray-100 bg-white/95 backdrop-blur-xl transition-all duration-500 md:hidden dark:border-white/5 dark:bg-gray-dark/95 ${
-            menuOpen ? "max-h-80 py-4 opacity-100" : "max-h-0 opacity-0"
+            menuOpen ? "max-h-[500px] py-4 opacity-100" : "max-h-0 opacity-0"
           }`}
         >
           <div className="flex flex-col gap-1 px-4 pb-4">
@@ -185,12 +185,16 @@ export default function PublicHeader() {
               </Link>
             ))}
             <div className="mt-2 flex flex-col gap-3 px-4">
+              <div className="flex items-center gap-4 py-2">
+                <LanguageToggle />
+                <ThemeToggleSwitch />
+              </div>
               {session.data && (
                 <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-3 dark:bg-white/5">
                   <div className="scale-90 origin-right">
                     <UserInfo />
                   </div>
-                  <span className="text-sm font-medium text-dark dark:text-white">حسابي</span>
+                  <span className="text-sm font-medium text-dark dark:text-white">{isAr ? "حسابي" : "My Account"}</span>
                 </div>
               )}
               <div className="flex gap-3 w-full">

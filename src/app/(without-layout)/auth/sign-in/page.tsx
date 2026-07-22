@@ -12,7 +12,29 @@ export default function SignIn() {
   return (
     <div className="flex min-h-screen flex-wrap items-center">
       <div className="w-full xl:w-1/2">
-        <div className="mx-auto w-[570px] p-4 sm:p-12.5 xl:p-15">
+        <div className="mx-auto w-full max-w-[570px] p-4 sm:p-12.5 xl:p-15">
+          <div className="mb-8 text-center xl:hidden">
+            <Link href="/" className="inline-block mb-6">
+              <Image
+                src="/images/logo/logo.png"
+                alt="Sa3dne"
+                width={160}
+                height={160}
+                className="mx-auto object-contain"
+              />
+            </Link>
+            <h1 className="text-2xl font-bold text-dark dark:text-white sm:text-3xl">
+              تسجيل الدخول
+            </h1>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              مرحباً بك مجدداً في منصة ساعدني
+            </p>
+          </div>
+          <div className="hidden xl:block mb-8 text-center">
+             <h1 className="text-2xl font-bold text-dark dark:text-white sm:text-3xl">
+              تسجيل الدخول
+            </h1>
+          </div>
           <Signin />
         </div>
       </div>

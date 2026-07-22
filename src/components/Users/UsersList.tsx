@@ -25,6 +25,14 @@ export default function UsersList({
 }) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+  
+  const totalPages = Math.ceil(initialUsers.length / ITEMS_PER_PAGE);
+  const currentUsers = initialUsers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   async function handleBanToggle(user: User) {
     setLoadingId(user.id);
@@ -57,7 +65,7 @@ export default function UsersList({
   return (
     <div dir="rtl">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-dark dark:text-white">
             إدارة المستخدمين
@@ -68,7 +76,7 @@ export default function UsersList({
         </div>
         <Link
           href="/dashboard/users/new"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-opacity-90"
+          className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-opacity-90"
         >
           <span className="text-lg leading-none">+</span>
           إضافة مستخدم
@@ -94,7 +102,7 @@ export default function UsersList({
               </tr>
             </thead>
             <tbody className="divide-y divide-stroke dark:divide-dark-3">
-              {initialUsers.length === 0 ? (
+              {currentUsers.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
@@ -104,7 +112,7 @@ export default function UsersList({
                   </td>
                 </tr>
               ) : (
-                initialUsers.map((user) => (
+                currentUsers.map((user) => (
                   <tr
                     key={user.id}
                     className="group transition-colors hover:bg-gray-1 dark:hover:bg-dark-2"
@@ -214,15 +222,37 @@ export default function UsersList({
           </table>
         </div>
 
-        {/* Footer count */}
+        {/* Footer count & Pagination */}
         {initialUsers.length > 0 && (
-          <div className="border-t border-stroke px-4 py-3 dark:border-dark-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-stroke px-4 py-3 dark:border-dark-3 gap-4">
             <p className="text-xs text-dark-4 dark:text-dark-6">
               إجمالي المستخدمين:{" "}
               <span className="font-semibold text-dark dark:text-white">
                 {initialUsers.length}
               </span>
             </p>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="rounded px-2 py-1 text-xs font-medium bg-gray-2 text-dark-4 disabled:opacity-50 dark:bg-dark-2 dark:text-dark-6 transition hover:bg-gray-3 dark:hover:bg-dark-3"
+                >
+                  السابق
+                </button>
+                <span className="text-xs font-medium text-dark-4 dark:text-dark-6">
+                  {currentPage} من {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="rounded px-2 py-1 text-xs font-medium bg-gray-2 text-dark-4 disabled:opacity-50 dark:bg-dark-2 dark:text-dark-6 transition hover:bg-gray-3 dark:hover:bg-dark-3"
+                >
+                  التالي
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

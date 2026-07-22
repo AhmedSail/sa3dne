@@ -39,6 +39,8 @@ export default function FamiliesList({
   const [minSize, setMinSize] = useState("");
   const [maxSize, setMaxSize] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   async function handleDeactivate(id: string) {
     const reason = prompt(
@@ -126,7 +128,14 @@ export default function FamiliesList({
     setSelectedOccupation("");
     setMinSize("");
     setMaxSize("");
+    setCurrentPage(1);
   };
+
+  const totalPages = Math.ceil(filteredFamilies.length / ITEMS_PER_PAGE);
+  const paginatedFamilies = filteredFamilies.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <div>
@@ -320,7 +329,7 @@ export default function FamiliesList({
               </tr>
             </thead>
             <tbody className="divide-y divide-stroke dark:divide-dark-3">
-              {filteredFamilies.length === 0 ? (
+              {paginatedFamilies.length === 0 ? (
                 <tr>
                   <td
                     colSpan={isManagerOrAdmin ? 7 : 6}
@@ -330,7 +339,7 @@ export default function FamiliesList({
                   </td>
                 </tr>
               ) : (
-                filteredFamilies.map((item) => (
+                paginatedFamilies.map((item) => (
                   <tr
                     key={item.id}
                     className="group transition-colors hover:bg-gray-1 dark:hover:bg-dark-2"
@@ -398,6 +407,38 @@ export default function FamiliesList({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {filteredFamilies.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-stroke px-4 py-3 dark:border-dark-3 gap-3">
+            <p className="text-xs text-dark-4 dark:text-dark-6">
+              {language === "ar"
+                ? `عرض ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, filteredFamilies.length)} من إجمالي ${filteredFamilies.length} عائلة`
+                : `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, filteredFamilies.length)} of ${filteredFamilies.length} families`}
+            </p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="rounded px-2 py-1 text-xs font-medium bg-gray-2 text-dark-4 disabled:opacity-50 dark:bg-dark-2 dark:text-dark-6 hover:bg-gray-3 dark:hover:bg-dark-3 transition"
+                >
+                  {language === "ar" ? "السابق" : "Prev"}
+                </button>
+                <span className="text-xs font-medium text-dark-4 dark:text-dark-6">
+                  {currentPage} {language === "ar" ? "من" : "of"} {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="rounded px-2 py-1 text-xs font-medium bg-gray-2 text-dark-4 disabled:opacity-50 dark:bg-dark-2 dark:text-dark-6 hover:bg-gray-3 dark:hover:bg-dark-3 transition"
+                >
+                  {language === "ar" ? "التالي" : "Next"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

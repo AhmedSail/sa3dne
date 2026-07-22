@@ -1,110 +1,184 @@
-import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import Image from "next/image";
-import { CameraIcon } from "./_components/icons";
-import { ProfileImageUploader } from "./_components/profile-image";
-import { SocialAccounts } from "./_components/social-accounts";
+"use client";
 
-type ProfileUser = {
-  name?: string;
-  image?: string | null;
-  bio?: string | null;
-  role?: string | null;
-};
+import { useState, useEffect } from "react";
+import { authClient } from "@/lib/auth/auth-client";
+import { toast } from "sonner";
+import { useLanguage } from "@/lib/i18n/language-context";
+import { useSession } from "@/lib/auth/auth-client";
 
-export default async function Page() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+export default function ProfilePage() {
+  const { data: session } = useSession();
+  const { language } = useLanguage();
+  const isAr = language === "ar";
 
-  const user = session?.user as ProfileUser;
+  const [name, setName] = useState("");
+  const [loadingName, setLoadingName] = useState(false);
 
-  const profile = {
-    name: user?.name!,
-    profilePhoto: user?.image ?? null,
-    coverPhoto: "/images/cover/cover-01.png",
-    bio: user?.bio || "Bio not available",
-    role: user?.role || "Role not set",
-  };
+  useEffect(() => {
+    if (session?.user?.name) {
+      setName(session.user.name);
+    }
+  }, [session?.user?.name]);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loadingPassword, setLoadingPassword] = useState(false);
+
+  async function handleNameUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) {
+      toast.error(isAr ? "الاسم مطلوب" : "Name is required");
+      return;
+    }
+    setLoadingName(true);
+    try {
+      await authClient.updateUser({ name });
+      toast.success(isAr ? "تم تحديث الاسم بنجاح" : "Name updated successfully");
+    } catch {
+      toast.error(isAr ? "فشل تحديث الاسم" : "Failed to update name");
+    } finally {
+      setLoadingName(false);
+    }
+  }
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error(isAr ? "يرجى ملء جميع الحقول" : "Please fill all fields");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error(isAr ? "كلمتا السر غير متطابقتين" : "Passwords do not match");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error(isAr ? "كلمة السر يجب أن تكون 8 أحرف على الأقل" : "Password must be at least 8 characters");
+      return;
+    }
+    setLoadingPassword(true);
+    try {
+      await authClient.changePassword({
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: false,
+      });
+      toast.success(isAr ? "تم تغيير كلمة السر بنجاح" : "Password changed successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch {
+      toast.error(isAr ? "فشل تغيير كلمة السر. تأكد من كلمة السر الحالية" : "Failed to change password. Check your current password");
+    } finally {
+      setLoadingPassword(false);
+    }
+  }
 
   return (
-    <div className="mx-auto w-full max-w-242.5">
-      <Breadcrumb pageName="Profile" />
+    <div dir={isAr ? "rtl" : "ltr"} className="mx-auto max-w-2xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-dark dark:text-white">
+          {isAr ? "الملف الشخصي" : "Profile"}
+        </h1>
+        <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
+          {isAr ? "إدارة معلوماتك الشخصية" : "Manage your personal information"}
+        </p>
+      </div>
 
-      <div className="overflow-hidden rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
-        <div className="relative z-20 h-35 md:h-65">
-          <Image
-            src={profile.coverPhoto}
-            alt="profile cover"
-            className="h-full w-full rounded-tl-[10px] rounded-tr-[10px] object-cover object-center"
-            width={970}
-            height={260}
-            style={{
-              width: "auto",
-              height: "auto",
-            }}
-          />
-          <div className="absolute right-1 bottom-1 z-10 xsm:right-4 xsm:bottom-4">
-            <label
-              htmlFor="cover"
-              className="hover:bg-opacity-90 flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-3.75 py-1.25 text-body-sm font-medium text-white"
-            >
-              <input
-                type="file"
-                name="coverPhoto"
-                id="coverPhoto"
-                className="sr-only"
-                accept="image/png, image/jpg, image/jpeg"
-              />
-
-              <CameraIcon />
-
-              <span>Edit</span>
+      {/* Name Section */}
+      <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
+        <h2 className="mb-4 text-base font-semibold text-dark dark:text-white">
+          {isAr ? "معلومات عامة" : "General Information"}
+        </h2>
+        <form onSubmit={handleNameUpdate} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+              {isAr ? "الاسم الكامل" : "Full Name"} *
             </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+              required
+            />
           </div>
-        </div>
-        <div className="px-4 pb-6 text-center lg:pb-8 xl:pb-11.5">
-          <ProfileImageUploader
-            initialImage={profile.profilePhoto}
-            name={profile.name}
-          />
-          <div className="mt-4">
-            <h3 className="mb-1 text-heading-6 font-bold text-dark dark:text-white">
-              {profile.name}
-            </h3>
-            <p className="font-medium">{profile.role}</p>
-            <div className="mx-auto mt-5 mb-5.5 grid max-w-92.5 grid-cols-3 rounded-[5px] border border-stroke py-2.25 shadow-1 dark:border-dark-3 dark:bg-dark-2 dark:shadow-card">
-              <div className="flex flex-col items-center justify-center gap-1 border-r border-stroke px-4 xsm:flex-row dark:border-dark-3">
-                <span className="font-medium text-dark dark:text-white">
-                  259
-                </span>
-                <span className="text-body-sm">Posts</span>
-              </div>
-              <div className="flex flex-col items-center justify-center gap-1 border-r border-stroke px-4 xsm:flex-row dark:border-dark-3">
-                <span className="font-medium text-dark dark:text-white">
-                  129K
-                </span>
-                <span className="text-body-sm">Followers</span>
-              </div>
-              <div className="flex flex-col items-center justify-center gap-1 px-4 xsm:flex-row">
-                <span className="font-medium text-dark dark:text-white">
-                  2K
-                </span>
-                <span className="text-body-sm-sm">Following</span>
-              </div>
-            </div>
-
-            <div className="mx-auto max-w-180">
-              <h4 className="font-medium text-dark dark:text-white">
-                About Me
-              </h4>
-              <p className="mt-4">{profile.bio}</p>
-            </div>
-
-            <SocialAccounts />
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-dark-4 dark:text-dark-6">
+              {isAr ? "البريد الإلكتروني" : "Email"}
+            </label>
+            <input
+              type="email"
+              value={session?.user?.email || ""}
+              disabled
+              className="w-full rounded-lg border border-stroke bg-gray-2 px-4 py-3 text-sm text-dark-4 outline-none cursor-not-allowed dark:border-dark-3 dark:bg-dark-2 dark:text-dark-6"
+            />
           </div>
-        </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={loadingName}
+              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-opacity-90 disabled:opacity-70"
+            >
+              {loadingName ? (isAr ? "جاري الحفظ..." : "Saving...") : (isAr ? "حفظ التغييرات" : "Save Changes")}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Password Section */}
+      <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
+        <h2 className="mb-4 text-base font-semibold text-dark dark:text-white">
+          {isAr ? "تغيير كلمة السر" : "Change Password"}
+        </h2>
+        <form onSubmit={handlePasswordChange} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+              {isAr ? "كلمة السر الحالية" : "Current Password"} *
+            </label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+              required
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+              {isAr ? "كلمة السر الجديدة" : "New Password"} *
+            </label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+              required
+              minLength={8}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+              {isAr ? "تأكيد كلمة السر الجديدة" : "Confirm New Password"} *
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+              required
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={loadingPassword}
+              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-opacity-90 disabled:opacity-70"
+            >
+              {loadingPassword ? (isAr ? "جاري التغيير..." : "Changing...") : (isAr ? "تغيير كلمة السر" : "Change Password")}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
