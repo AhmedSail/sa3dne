@@ -12,11 +12,11 @@ export default async function Home() {
     redirect("/auth/sign-in");
   }
 
-  const stats = await getDashboardStats();
+  const stats = await getDashboardStats(session.user.id, (session.user as any).role);
 
   return (
     <>
-      <DashboardClient data={stats} />
+      <DashboardClient data={stats} userRole={(session.user as any).role} />
     </>
   );
 }

@@ -8,6 +8,7 @@ type ContributionRow = {
   id: string;
   providerName: string | null;
   status: string;
+  displayStatus?: string;
   notes: string | null;
   submittedAt: string | Date | null;
   createdAt: string | Date | null;
@@ -16,7 +17,11 @@ type ContributionRow = {
 function formatDate(value: string | Date | null) {
   if (!value) return "—";
   const d = new Date(value);
-  return d.toLocaleDateString();
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 export default function ContributionsList({
@@ -100,7 +105,7 @@ export default function ContributionsList({
                       </td>
                     )}
                     <td className="whitespace-nowrap px-4 py-3.5">
-                      <ContributionStatusBadge status={c.status} />
+                      <ContributionStatusBadge status={c.displayStatus || c.status} />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3.5 text-dark-4 dark:text-dark-6">
                       {formatDate(c.submittedAt)}

@@ -7,7 +7,7 @@ import { db } from "@/db";
 import { user, account } from "@/db/schema/auth";
 import { hashPassword } from "better-auth/crypto";
 
-export async function createUserAction(data: { name: string, email: string, password: string, role: string, phone: string | null }) {
+export async function createUserAction(data: { name: string, email: string, password: string, role: string, phone: string | null, campId?: string | null }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session || (session.user as any).role !== "admin") {
     return { error: "غير مصرح لك بإضافة مستخدمين. يرجى تسجيل الخروج والدخول مجدداً إذا كنت متأكداً من صلاحياتك." };
@@ -36,6 +36,16 @@ export async function createUserAction(data: { name: string, email: string, pass
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+
+      if (data.role === "camp_manager" && data.campId) {
+        const { campAssignment } = await import("@/db/schema/camps");
+        await tx.insert(campAssignment).values({
+          id: crypto.randomUUID(),
+          campId: data.campId,
+          userId: userId,
+          createdAt: new Date(),
+        });
+      }
 
       await tx.insert(account).values({
         id: crypto.randomUUID(),

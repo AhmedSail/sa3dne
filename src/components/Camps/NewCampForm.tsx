@@ -48,6 +48,16 @@ export default function NewCampForm({ managers }: { managers: Manager[] }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!form.name.trim()) {
+      toast.error(language === "ar" ? "اسم المخيم مطلوب" : "Camp name is required");
+      return;
+    }
+
+    if (!form.location) {
+      toast.error(language === "ar" ? "موقع المخيم مطلوب" : "Camp location is required");
+      return;
+    }
+
     if (form.capacity <= 0) {
       toast.error(t("capacityValidationError"));
       return;

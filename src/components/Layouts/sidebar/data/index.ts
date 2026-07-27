@@ -16,6 +16,7 @@ export const NAV_DATA = [
         langKey: "camps",
         icon: Icons.Table,
         url: "/dashboard/camps",
+        roles: ["admin", "camp_manager", "org_representative"],
         items: [],
       },
       {
@@ -23,6 +24,7 @@ export const NAV_DATA = [
         langKey: "families",
         icon: Icons.User,
         url: "/dashboard/families",
+        roles: ["admin", "camp_manager"],
         items: [],
       },
       {
@@ -30,6 +32,7 @@ export const NAV_DATA = [
         langKey: "aidTypes",
         icon: Icons.Alphabet,
         url: "/dashboard/aid-types",
+        roles: ["admin"],
         items: [],
       },
       {
@@ -37,6 +40,7 @@ export const NAV_DATA = [
         langKey: "providers",
         icon: Icons.PieChart,
         url: "/dashboard/providers",
+        roles: ["admin"],
         items: [],
       },
       {
@@ -44,6 +48,7 @@ export const NAV_DATA = [
         langKey: "contributions",
         icon: Icons.FourCircle,
         url: "/dashboard/contributions",
+        roles: ["admin", "camp_manager"],
         items: [],
       },
       {
@@ -51,6 +56,7 @@ export const NAV_DATA = [
         langKey: "myContributions",
         icon: Icons.FourCircle,
         url: "/dashboard/my-contributions",
+        roles: ["org_representative", "independent_initiator"],
         items: [],
       },
       {
@@ -58,6 +64,15 @@ export const NAV_DATA = [
         langKey: "incomingAid",
         icon: Icons.Calendar,
         url: "/dashboard/incoming-aid",
+        roles: ["admin", "camp_manager"],
+        items: [],
+      },
+      {
+        title: "Aid Requests",
+        langKey: "aidRequests",
+        icon: Icons.Table,
+        url: "/dashboard/aid-requests",
+        roles: ["admin", "camp_manager", "org_representative", "independent_initiator"],
         items: [],
       },
       {
@@ -65,6 +80,7 @@ export const NAV_DATA = [
         langKey: "complaints",
         icon: Icons.Table,
         url: "/dashboard/complaints",
+        roles: ["admin", "camp_manager"],
         items: [],
       },
       {
@@ -72,6 +88,7 @@ export const NAV_DATA = [
         langKey: "campNeeds",
         icon: Icons.PieChart,
         url: "/dashboard/camp-needs",
+        roles: ["admin", "camp_manager", "org_representative", "independent_initiator"],
         items: [],
       },
       {
@@ -81,17 +98,33 @@ export const NAV_DATA = [
         url: "/dashboard/notifications",
         items: [],
       },
+      {
+        title: "My Family",
+        langKey: "myFamily",
+        icon: Icons.User,
+        url: "/dashboard/my-family",
+        roles: ["beneficiary"],
+        items: [],
+      },
+      {
+        title: "My Complaints",
+        langKey: "myComplaints",
+        icon: Icons.Table,
+        url: "/dashboard/my-complaints",
+        roles: ["beneficiary"],
+        items: [],
+      },
     ],
   },
   {
     label: "adminMenu",
-    adminOnly: true,
+    roles: ["admin"],
     items: [
       {
         title: "Audit Logs",
         langKey: "auditLogs",
         icon: Icons.Table,
-        adminOnly: true,
+        roles: ["admin"],
         url: "/dashboard/audit-logs",
         items: [],
       },
@@ -99,7 +132,7 @@ export const NAV_DATA = [
         title: "User Management",
         langKey: "users",
         icon: Icons.User,
-        adminOnly: true,
+        roles: ["admin"],
         items: [
           {
             title: "Users List",
@@ -117,7 +150,7 @@ export const NAV_DATA = [
         title: "Settings",
         langKey: "settings",
         icon: Icons.Alphabet,
-        adminOnly: true,
+        roles: ["admin"],
         items: [
           {
             title: "Contact Settings",

@@ -5,13 +5,29 @@ import { aidContribution } from "@/db/schema/contributions";
 import { campAssignment } from "@/db/schema/camps";
 import { eq, sql } from "drizzle-orm";
 
-export async function getDashboardStats() {
+export async function getDashboardStats(userId?: string, userRole?: string) {
   try {
-    const campsList = await db.select().from(camp);
-    const familiesList = await db.select().from(family);
+    let campsList = await db.select().from(camp);
+    let familiesList = await db.select().from(family);
     const providersList = await db.select().from(aidProvider);
-    const complaintsList = await db.select().from(complaints);
-    const contributionsList = await db.select().from(aidContribution);
+    let complaintsList = await db.select().from(complaints);
+    let contributionsList = await db.select().from(aidContribution);
+
+    if (userRole === "camp_manager" && userId) {
+      const assignments = await db.select().from(campAssignment).where(eq(campAssignment.userId, userId));
+      const campIds = assignments.map(a => a.campId);
+      
+      campsList = campsList.filter(c => campIds.includes(c.id));
+      familiesList = familiesList.filter(f => campIds.includes(f.campId));
+      complaintsList = complaintsList.filter(c => c.campId && campIds.includes(c.campId));
+    } else if (["org_representative", "independent_initiator"].includes(userRole || "") && userId) {
+      const myProvider = providersList.find(p => (p as any).linkedUserId === userId);
+      if (myProvider) {
+        contributionsList = contributionsList.filter(c => c.providerId === myProvider.id);
+      } else {
+        contributionsList = [];
+      }
+    }
 
     const totalIndividuals = familiesList.reduce((acc, f) => acc + (f.memberCount || 1), 0);
 

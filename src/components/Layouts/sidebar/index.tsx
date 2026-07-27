@@ -26,10 +26,10 @@ export function Sidebar({ userRole }: SidebarProps) {
 
   // Filter nav data based on role
   const filteredNavData = NAV_DATA.filter(
-    (section) => !("adminOnly" in section) || isAdmin,
+    (section) => !section.roles || (userRole && section.roles.includes(userRole)),
   ).map((section) => ({
     ...section,
-    items: section.items.filter((item) => !("adminOnly" in item) || isAdmin),
+    items: section.items.filter((item) => !item.roles || (userRole && item.roles.includes(userRole))),
   }));
 
   const toggleExpanded = (title: string) => {
@@ -65,7 +65,7 @@ export function Sidebar({ userRole }: SidebarProps) {
 
       <aside
         className={cn(
-          "max-w-[290px] overflow-hidden border-r border-gray-200 bg-white transition-width duration-200 ease-linear dark:border-gray-800 dark:bg-gray-dark",
+          "max-w-[290px] overflow-hidden border-r border-gray-200 bg-white transition-width duration-200 ease-linear dark:border-gray-800 dark:bg-gray-dark print:hidden",
           isMobile ? "fixed top-0 bottom-0 z-50" : "sticky top-0 h-screen",
           isOpen ? "w-full" : "w-0",
         )}

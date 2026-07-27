@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { GovernorateChart } from "./GovernorateChart";
 import { NeedLevelChart } from "./NeedLevelChart";
+import BeneficiaryDashboard from "./BeneficiaryDashboard";
 
 type CampOccupancy = {
   id: string;
@@ -91,7 +92,13 @@ function StatCard({
   return href ? <Link href={href}>{inner}</Link> : inner;
 }
 
-export default function DashboardClient({ data }: { data: DashboardData }) {
+export default function DashboardClient({
+  data,
+  userRole = "admin",
+}: {
+  data: DashboardData;
+  userRole?: string;
+}) {
   const { t, language } = useLanguage();
 
   const govData = [
@@ -111,6 +118,35 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
 
   const isAr = language === "ar";
 
+  const canReadFamilies = ["admin", "camp_manager"].includes(userRole);
+  const canReadComplaints = ["admin", "camp_manager"].includes(userRole);
+  const canReadContributions = ["admin", "camp_manager", "org_representative", "independent_initiator"].includes(userRole);
+  const canReadCamps = ["admin", "camp_manager", "org_representative", "independent_initiator"].includes(userRole);
+
+  if (userRole === "beneficiary") {
+    return <BeneficiaryDashboard />;
+  }
+
+  if (userRole === "user") {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center text-center space-y-5">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <svg className="h-10 w-10 fill-current" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+          </svg>
+        </div>
+        <h2 className="text-3xl font-black text-dark dark:text-white">
+          {isAr ? "حسابك قيد المراجعة" : "Account Pending Review"}
+        </h2>
+        <p className="max-w-lg text-base text-dark-4 dark:text-dark-6">
+          {isAr
+            ? "لقد تم تسجيل حسابك بنجاح وهو الآن بانتظار مراجعة الإدارة وتفعيل صلاحياتك."
+            : "Your account has been registered successfully and is waiting for management review to activate your permissions."}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* 1. Overview Cards */}
@@ -126,27 +162,31 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
             </svg>
           }
         />
-        <StatCard
-          label={t("families")}
-          value={data.totalFamilies}
-          color="bg-green-500/10 text-green-500"
-          href="/dashboard/families"
-          icon={
-            <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
-              <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-            </svg>
-          }
-        />
-        <StatCard
-          label={isAr ? "إجمالي الأفراد" : "Total Individuals"}
-          value={data.totalIndividuals}
-          color="bg-cyan-500/10 text-cyan-500"
-          icon={
-            <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-            </svg>
-          }
-        />
+        {canReadFamilies && (
+          <>
+            <StatCard
+              label={t("families")}
+              value={data.totalFamilies}
+              color="bg-green-500/10 text-green-500"
+              href="/dashboard/families"
+              icon={
+                <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
+                  <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                </svg>
+              }
+            />
+            <StatCard
+              label={isAr ? "إجمالي الأفراد" : "Total Individuals"}
+              value={data.totalIndividuals}
+              color="bg-cyan-500/10 text-cyan-500"
+              icon={
+                <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+              }
+            />
+          </>
+        )}
         <StatCard
           label={t("providers")}
           value={data.totalProviders}
@@ -162,39 +202,45 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
 
       {/* 2. Second Row — Complaints & Contributions */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard
-          label={t("complaints")}
-          value={data.totalComplaints}
-          color="bg-purple-500/10 text-purple-500"
-          href="/dashboard/complaints"
-          icon={
-            <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
-              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z" />
-            </svg>
-          }
-        />
-        <StatCard
-          label={isAr ? "شكاوى معلقة" : "Pending Complaints"}
-          value={data.pendingComplaints}
-          color="bg-orange-500/10 text-orange-500"
-          href="/dashboard/complaints?status=pending"
-          icon={
-            <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-            </svg>
-          }
-        />
-        <StatCard
-          label={t("contributions")}
-          value={data.totalContributions}
-          color="bg-teal-500/10 text-teal-500"
-          href="/dashboard/contributions"
-          icon={
-            <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
-              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z" />
-            </svg>
-          }
-        />
+        {canReadComplaints && (
+          <>
+            <StatCard
+              label={t("complaints")}
+              value={data.totalComplaints}
+              color="bg-purple-500/10 text-purple-500"
+              href="/dashboard/complaints"
+              icon={
+                <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
+                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z" />
+                </svg>
+              }
+            />
+            <StatCard
+              label={isAr ? "شكاوى معلقة" : "Pending Complaints"}
+              value={data.pendingComplaints}
+              color="bg-orange-500/10 text-orange-500"
+              href="/dashboard/complaints?status=pending"
+              icon={
+                <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                </svg>
+              }
+            />
+          </>
+        )}
+        {canReadContributions && (
+          <StatCard
+            label={t("contributions")}
+            value={data.totalContributions}
+            color="bg-teal-500/10 text-teal-500"
+            href="/dashboard/contributions"
+            icon={
+              <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z" />
+              </svg>
+            }
+          />
+        )}
       </div>
 
       {/* 3. Charts Row */}
@@ -215,49 +261,51 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* 4. Complaints Status Breakdown */}
-      <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <h2 className="text-lg font-bold text-dark dark:text-white">
-            {isAr ? "حالة الشكاوى والمقترحات" : "Complaints Status Breakdown"}
-          </h2>
-          <Link href="/dashboard/complaints" className="text-xs font-semibold text-primary hover:underline whitespace-nowrap shrink-0">
-            {isAr ? "عرض جميع الشكاوى" : "View all complaints"} &rarr;
-          </Link>
+      {canReadComplaints && (
+        <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <h2 className="text-lg font-bold text-dark dark:text-white">
+              {isAr ? "حالة الشكاوى والمقترحات" : "Complaints Status Breakdown"}
+            </h2>
+            <Link href="/dashboard/complaints" className="text-xs font-semibold text-primary hover:underline whitespace-nowrap shrink-0">
+              {isAr ? "عرض جميع الشكاوى" : "View all complaints"} &rarr;
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              {
+                label: isAr ? "قيد الانتظار" : "Pending",
+                value: data.complaintsByStatus.pending,
+                color: "text-warning bg-warning/10",
+                dot: "bg-warning",
+              },
+              {
+                label: isAr ? "قيد المراجعة" : "In Review",
+                value: data.complaintsByStatus.in_review,
+                color: "text-primary bg-primary/10",
+                dot: "bg-primary",
+              },
+              {
+                label: isAr ? "تم الحل" : "Resolved",
+                value: data.complaintsByStatus.resolved,
+                color: "text-success bg-success/10",
+                dot: "bg-success",
+              },
+              {
+                label: isAr ? "مرفوض" : "Rejected",
+                value: data.complaintsByStatus.rejected,
+                color: "text-danger bg-danger/10",
+                dot: "bg-danger",
+              },
+            ].map((item) => (
+              <div key={item.label} className={cn("rounded-lg p-4 text-center", item.color)}>
+                <div className="text-3xl font-bold">{item.value}</div>
+                <div className="mt-1 text-xs font-semibold">{item.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            {
-              label: isAr ? "قيد الانتظار" : "Pending",
-              value: data.complaintsByStatus.pending,
-              color: "text-warning bg-warning/10",
-              dot: "bg-warning",
-            },
-            {
-              label: isAr ? "قيد المراجعة" : "In Review",
-              value: data.complaintsByStatus.in_review,
-              color: "text-primary bg-primary/10",
-              dot: "bg-primary",
-            },
-            {
-              label: isAr ? "تم الحل" : "Resolved",
-              value: data.complaintsByStatus.resolved,
-              color: "text-success bg-success/10",
-              dot: "bg-success",
-            },
-            {
-              label: isAr ? "مرفوض" : "Rejected",
-              value: data.complaintsByStatus.rejected,
-              color: "text-danger bg-danger/10",
-              dot: "bg-danger",
-            },
-          ].map((item) => (
-            <div key={item.label} className={cn("rounded-lg p-4 text-center", item.color)}>
-              <div className="text-3xl font-bold">{item.value}</div>
-              <div className="mt-1 text-xs font-semibold">{item.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* 5. Camps Occupancy & Need Levels */}
       <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
@@ -336,59 +384,61 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* 6. Recent Registered Families */}
-      <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 className="text-lg font-bold text-dark dark:text-white">
-            {isAr ? "آخر العائلات المسجلة" : "Recently Registered Families"}
-          </h2>
-          <Link href="/dashboard/families" className="text-xs font-semibold text-primary hover:underline whitespace-nowrap shrink-0">
-            {isAr ? "عرض جميع العائلات" : "View all families"} &rarr;
-          </Link>
-        </div>
+      {canReadFamilies && (
+        <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 className="text-lg font-bold text-dark dark:text-white">
+              {isAr ? "آخر العائلات المسجلة" : "Recently Registered Families"}
+            </h2>
+            <Link href="/dashboard/families" className="text-xs font-semibold text-primary hover:underline whitespace-nowrap shrink-0">
+              {isAr ? "عرض جميع العائلات" : "View all families"} &rarr;
+            </Link>
+          </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-stroke text-xs font-semibold text-dark-4 dark:border-dark-3 dark:text-dark-6">
-                <th className="pb-3 px-4 text-start">{t("headName")}</th>
-                <th className="pb-3 px-4 text-start">{t("nationalId")}</th>
-                <th className="pb-3 px-4 text-center">{t("memberCount")}</th>
-                <th className="pb-3 px-4 text-start">{t("camps")}</th>
-                <th className="pb-3 px-4 text-end">{isAr ? "تاريخ التسجيل" : "Registration Date"}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stroke text-sm text-dark dark:divide-dark-3 dark:text-white">
-              {data.recentFamilies.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-dark-5">
-                    {isAr ? "لا توجد عائلات مسجلة حالياً" : "No families registered yet."}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse whitespace-nowrap">
+              <thead>
+                <tr className="border-b border-stroke text-xs font-semibold text-dark-4 dark:border-dark-3 dark:text-dark-6">
+                  <th className="pb-3 px-4 text-start">{t("headName")}</th>
+                  <th className="pb-3 px-4 text-start">{t("nationalId")}</th>
+                  <th className="pb-3 px-4 text-center">{t("memberCount")}</th>
+                  <th className="pb-3 px-4 text-start">{t("camps")}</th>
+                  <th className="pb-3 px-4 text-end">{isAr ? "تاريخ التسجيل" : "Registration Date"}</th>
                 </tr>
-              ) : (
-                data.recentFamilies.map((f) => (
-                  <tr key={f.id} className="hover:bg-gray-2/50 dark:hover:bg-dark-2/50">
-                    <td className="py-3 px-4 font-semibold text-start text-primary hover:underline">
-                      <Link href={`/dashboard/families/${f.id}`}>{f.headName}</Link>
-                    </td>
-                    <td className="py-3 px-4 text-start text-xs text-dark-5 dark:text-dark-6 font-mono">
-                      {f.nationalId}
-                    </td>
-                    <td className="py-3 px-4 text-center font-semibold">{f.memberCount}</td>
-                    <td className="py-3 px-4 text-start text-xs text-dark-5 dark:text-dark-6">{f.campName}</td>
-                    <td className="py-3 px-4 text-end text-xs text-dark-4 dark:text-dark-6">
-                      {new Date(f.createdAt).toLocaleDateString(isAr ? "ar-EG" : "en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+              </thead>
+              <tbody className="divide-y divide-stroke text-sm text-dark dark:divide-dark-3 dark:text-white">
+                {data.recentFamilies.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-dark-5">
+                      {isAr ? "لا توجد عائلات مسجلة حالياً" : "No families registered yet."}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  data.recentFamilies.map((f) => (
+                    <tr key={f.id} className="hover:bg-gray-2/50 dark:hover:bg-dark-2/50">
+                      <td className="py-3 px-4 font-semibold text-start text-primary hover:underline">
+                        <Link href={`/dashboard/families/${f.id}`}>{f.headName}</Link>
+                      </td>
+                      <td className="py-3 px-4 text-start text-xs text-dark-5 dark:text-dark-6 font-mono">
+                        {f.nationalId}
+                      </td>
+                      <td className="py-3 px-4 text-center font-semibold">{f.memberCount}</td>
+                      <td className="py-3 px-4 text-start text-xs text-dark-5 dark:text-dark-6">{f.campName}</td>
+                      <td className="py-3 px-4 text-end text-xs text-dark-4 dark:text-dark-6">
+                        {new Date(f.createdAt).toLocaleDateString(isAr ? "ar-EG" : "en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

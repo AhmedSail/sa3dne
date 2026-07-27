@@ -36,8 +36,37 @@ export async function GET(request: NextRequest) {
     .innerJoin(aidProvider, eq(aidContribution.providerId, aidProvider.id))
     .orderBy(desc(aidContribution.createdAt));
 
+  // Fetch all lines to derive display status
+  const allLines = await db.query.aidContributionLine.findMany({
+    columns: { contributionId: true, status: true },
+  });
+
+  const enrichedRows = rows.map((row) => {
+    const lines = allLines.filter((l) => l.contributionId === row.id);
+    let displayStatus = row.status as string;
+
+    if (row.status === "submitted" && lines.length > 0) {
+      const total = lines.length;
+      const receivedCount = lines.filter((l) => l.status === "received" || l.status === "partially_received").length;
+      const fullyReceivedCount = lines.filter((l) => l.status === "received").length;
+      const terminalCount = lines.filter((l) => l.status === "received" || l.status === "partially_received" || l.status === "not_received" || l.status === "rejected").length;
+
+      if (fullyReceivedCount === total) {
+        displayStatus = "completed";
+      } else if (terminalCount === total && receivedCount > 0) {
+        displayStatus = "partially_received";
+      } else if (terminalCount === total && receivedCount === 0) {
+        displayStatus = "not_received";
+      } else if (receivedCount > 0) {
+        displayStatus = "partially_received";
+      }
+    }
+
+    return { ...row, displayStatus };
+  });
+
   if (isAdmin) {
-    return NextResponse.json(rows);
+    return NextResponse.json(enrichedRows);
   }
 
   // Provider: scope to own provider profile only.
@@ -45,7 +74,7 @@ export async function GET(request: NextRequest) {
   if (!provider) {
     return NextResponse.json([]);
   }
-  return NextResponse.json(rows.filter((r) => r.providerId === provider.id));
+  return NextResponse.json(enrichedRows.filter((r) => r.providerId === provider.id));
 }
 
 /**

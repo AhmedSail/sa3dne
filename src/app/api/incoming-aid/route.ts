@@ -39,9 +39,7 @@ export async function GET(request: NextRequest) {
   }
 
   const filters = [
-    // Only lines whose parent contribution has been submitted.
-    eq(aidContribution.status, "submitted"),
-    // Defensive: never surface anything still in draft.
+    // Never show draft contributions on the incoming-aid side.
     ne(aidContribution.status, "draft"),
   ];
   if (isCampManager) {

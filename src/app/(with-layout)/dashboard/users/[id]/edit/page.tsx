@@ -1,7 +1,7 @@
 import EditUserForm from "@/components/Users/EditUserForm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { user } from "@/db/schema";
+import { user, camp } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
@@ -28,6 +28,15 @@ export default async function EditUserPage({
     notFound();
   }
 
+  let currentCampId: string | null = null;
+  if (userData[0].role === "camp_manager") {
+    const { campAssignment } = await import("@/db/schema/camps");
+    const assignments = await db.select().from(campAssignment).where(eq(campAssignment.userId, id)).limit(1);
+    if (assignments.length > 0) {
+      currentCampId = assignments[0].campId;
+    }
+  }
+
   // Map nulls and format for the client component
   const formattedUser = {
     id: userData[0].id,
@@ -35,7 +44,10 @@ export default async function EditUserPage({
     email: userData[0].email,
     role: userData[0].role,
     phone: userData[0].phone,
+    campId: currentCampId,
   };
 
-  return <EditUserForm user={formattedUser} />;
+  const camps = await db.select({ id: camp.id, name: camp.name }).from(camp);
+
+  return <EditUserForm user={formattedUser} camps={camps} />;
 }

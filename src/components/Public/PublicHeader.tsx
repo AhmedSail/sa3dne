@@ -146,12 +146,14 @@ export default function PublicHeader() {
                 </div>
               )}
 
-              <Link
-                href="/dashboard"
-                className="btn-glow hidden items-center justify-center rounded-xl bg-[#10b981] px-6 py-2.5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#059669] hover:shadow-[0_8px_25px_rgba(16,185,129,0.4)] sm:inline-flex"
-              >
-                {t("landingDashboardBtn")}
-              </Link>
+              {(!session.data || (session.data.user as any).role !== "user") && (
+                <Link
+                  href="/dashboard"
+                  className="btn-glow hidden items-center justify-center rounded-xl bg-[#10b981] px-6 py-2.5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#059669] hover:shadow-[0_8px_25px_rgba(16,185,129,0.4)] sm:inline-flex"
+                >
+                  {t("landingDashboardBtn")}
+                </Link>
+              )}
             </div>
 
             {/* ── Mobile Menu Button ── */}
@@ -206,12 +208,14 @@ export default function PublicHeader() {
                     {t("landingLoginBtn")}
                   </Link>
                 ) : null}
-                <Link
-                  href="/dashboard"
-                  className="flex-1 rounded-xl bg-[#10b981] py-2.5 text-center text-sm font-bold text-white hover:bg-[#059669]"
-                >
-                  {t("landingDashboardBtn")}
-                </Link>
+                {(!session.data || (session.data.user as any).role !== "user") && (
+                  <Link
+                    href="/dashboard"
+                    className="flex-1 rounded-xl bg-[#10b981] py-2.5 text-center text-sm font-bold text-white hover:bg-[#059669]"
+                  >
+                    {t("landingDashboardBtn")}
+                  </Link>
+                )}
               </div>
             </div>
           </div>

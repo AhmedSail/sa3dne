@@ -195,6 +195,42 @@ export async function updateComplaintStatus(id: string, data: z.infer<typeof upd
       request: { headers: reqHeaders },
     });
 
+    if (complaint.status !== parsed.data.status) {
+      // Find the family user to notify
+      const { family } = await import("@/db/schema/families");
+      const { user } = await import("@/db/schema/auth");
+      const { notification } = await import("@/db/schema/notifications");
+      
+      const familyData = await db.select().from(family)
+        .where(eq(family.headName, complaint.beneficiaryName))
+        .limit(1);
+
+      if (familyData.length > 0) {
+        const beneficiaryUser = await db.select().from(user)
+          .where(eq(user.email, `${familyData[0].nationalId}@sa3dne.local`))
+          .limit(1);
+
+        if (beneficiaryUser.length > 0) {
+          const statusMap: any = {
+            in_review: "قيد المراجعة",
+            resolved: "تم الحل",
+            rejected: "مرفوضة"
+          };
+          const arStatus = statusMap[parsed.data.status] || parsed.data.status;
+          
+          await db.insert(notification).values({
+            id: crypto.randomUUID(),
+            userId: beneficiaryUser[0].id,
+            title: "تحديث حالة الشكوى",
+            message: `تم تحديث حالة شكواك (رقم التتبع: ${complaint.trackingNumber}) إلى: ${arStatus}`,
+            entityType: "complaint",
+            entityId: id,
+            link: "/dashboard/my-complaints",
+          });
+        }
+      }
+    }
+
     revalidatePath("/dashboard/complaints");
     revalidatePath(`/dashboard/complaints/${id}`);
 

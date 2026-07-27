@@ -13,6 +13,7 @@ export const translations = {
     adminMenu: "إدارة النظام",
     complaints: "الشكاوى والمقترحات",
     campNeeds: "احتياجات المخيمات",
+    aidRequests: "طلبات المساعدة",
     othersMenu: "أخرى",
     profile: "الملف الشخصي",
     logout: "تسجيل الخروج",
@@ -47,10 +48,11 @@ export const translations = {
     authSignUpDesc: "انضم إلينا الآن وكن جزءاً من رسالتنا الإنسانية. أنشئ حسابك للبدء.",
 
     // Sign-in form
-    emailLabel: "البريد الإلكتروني",
+    emailLabel: "رقم الهوية أو البريد الإلكتروني",
     passwordLabel: "كلمة المرور",
     signInButton: "تسجيل الدخول",
     signInError: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    invalidIdOrEmailError: "يجب إدخال رقم هوية صالح (9 أرقام) أو بريد إلكتروني صحيح",
     signUpLinkText: "إنشاء حساب جديد",
     noAccountQuestion: "ليس لديك حساب؟",
     haveAccountQuestion: "لديك حساب بالفعل؟",
@@ -59,12 +61,19 @@ export const translations = {
     // Sign-up form
     nameLabel: "الاسم الكامل",
     namePlaceholder: "أدخل اسمك",
-    emailPlaceholder: "أدخل بريدك الإلكتروني",
+    emailPlaceholder: "أدخل رقم الهوية أو البريد",
+    phoneLabel: "رقم الهاتف",
+    phonePlaceholder: "أدخل رقم هاتفك (اختياري)",
     passwordPlaceholder: "أنشئ كلمة مرور",
+    confirmPasswordLabel: "تأكيد كلمة المرور",
+    confirmPasswordPlaceholder: "أعد إدخال كلمة المرور",
+    passwordMismatchError: "كلمتا المرور غير متطابقتين",
     signUpButton: "إنشاء حساب",
-    orSignUpWith: "أو سجّل باستخدام البريد الإلكتروني",
+    orSignUpWith: "أو باستخدام",
     signUpSuccess: "تم إنشاء الحساب بنجاح",
     signUpError: "فشل إنشاء الحساب",
+    signInWithGoogle: "تسجيل الدخول باستخدام Google",
+    signUpWithGoogle: "إنشاء حساب باستخدام Google",
 
     // Landing Page
     landingHeroTitle: "منصة إدارة مخيمات النازحين",
@@ -312,7 +321,9 @@ export const translations = {
 
     // Notifications & Audit (Phase 6)
     notifications: "الإشعارات",
-    auditLogs: "سجل التدقيق",
+    myFamily: "عائلتي",
+    myComplaints: "الشكاوى",
+    auditLogs: "سجلات النظام",
     markAllRead: "تحديد الكل كمقروء",
     markRead: "تحديد كمقروء",
     noNotifications: "لا توجد إشعارات",
@@ -346,6 +357,7 @@ export const translations = {
     mainMenu: "MAIN MENU",
     complaints: "Complaints",
     campNeeds: "Camp Needs",
+    aidRequests: "Aid Requests",
     adminMenu: "ADMIN MENU",
     othersMenu: "OTHERS",
     profile: "Profile",
@@ -381,10 +393,11 @@ export const translations = {
     authSignUpDesc: "Join us now and be part of our humanitarian mission. Create your account to begin.",
 
     // Sign-in form
-    emailLabel: "Email Address",
+    emailLabel: "ID Number or Email",
     passwordLabel: "Password",
     signInButton: "Sign In",
     signInError: "Invalid email or password",
+    invalidIdOrEmailError: "Please enter a valid ID number (9 digits) or email address",
     signUpLinkText: "Create an Account",
     noAccountQuestion: "Don't have an account?",
     haveAccountQuestion: "Already have an account?",
@@ -392,13 +405,20 @@ export const translations = {
 
     // Sign-up form
     nameLabel: "Full Name",
-    namePlaceholder: "Enter your name",
-    emailPlaceholder: "Enter your email",
+    namePlaceholder: "Enter your full name",
+    emailPlaceholder: "Enter your ID or Email",
+    phoneLabel: "Phone Number",
+    phonePlaceholder: "Enter your phone number (optional)",
     passwordPlaceholder: "Create a password",
+    confirmPasswordLabel: "Confirm Password",
+    confirmPasswordPlaceholder: "Re-enter password",
+    passwordMismatchError: "Passwords do not match",
     signUpButton: "Create Account",
-    orSignUpWith: "Or sign up with email",
+    orSignUpWith: "Or continue with",
     signUpSuccess: "Account created successfully",
     signUpError: "Sign up failed",
+    signInWithGoogle: "Sign in with Google",
+    signUpWithGoogle: "Sign up with Google",
 
     // Landing Page
     landingHeroTitle: "IDP Camp Management Platform",
@@ -646,6 +666,8 @@ export const translations = {
 
     // Notifications & Audit (Phase 6)
     notifications: "Notifications",
+    myFamily: "My Family",
+    myComplaints: "My Complaints",
     auditLogs: "Audit Logs",
     markAllRead: "Mark all as read",
     markRead: "Mark as read",

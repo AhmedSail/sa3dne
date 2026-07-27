@@ -1,3 +1,6 @@
+import { db } from "@/db";
+import { camp, aidType } from "@/db/schema";
+import { eq, and, ne } from "drizzle-orm";
 import NewContribution from "@/components/Contributions/NewContribution";
 import { auth } from "@/lib/auth";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
@@ -18,5 +21,17 @@ export default async function NewContributionPage() {
     redirect("/dashboard/contributions");
   }
 
-  return <NewContribution providerName={provider.name} />;
+  const camps = await db
+    .select({ id: camp.id, name: camp.name })
+    .from(camp)
+    .where(and(eq(camp.status, "active"), ne(camp.operationalStatus, "closed")))
+    .orderBy(camp.name);
+
+  const aidTypes = await db
+    .select({ id: aidType.id, name: aidType.name, defaultUnit: aidType.defaultUnit })
+    .from(aidType)
+    .where(eq(aidType.status, "active"))
+    .orderBy(aidType.name);
+
+  return <NewContribution providerName={provider.name} camps={camps} aidTypes={aidTypes} />;
 }

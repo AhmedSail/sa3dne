@@ -119,7 +119,7 @@ export function UserInfo() {
             </div>
 
             <div className="w-full max-w-47.5 truncate leading-none text-gray-6">
-              {user.email}
+              {user.email?.replace("@sa3dne.local", "")}
             </div>
           </figcaption>
         </figure>

@@ -8,6 +8,7 @@ import { z } from "zod";
 const updateUserSchema = z.object({
   name: z.string().min(2).optional(),
   phone: z.string().optional().nullable(),
+  campId: z.string().optional().nullable(),
   role: z.enum([
     "user",
     "admin",
@@ -47,7 +48,28 @@ export async function PUT(
   if (parsed.data.phone !== undefined) updates.phone = parsed.data.phone;
   if (parsed.data.role !== undefined) updates.role = parsed.data.role;
 
-  await db.update(user).set(updates).where(eq(user.id, id));
+  // Use transaction to update user and handle campAssignment
+  await db.transaction(async (tx) => {
+    if (Object.keys(updates).length > 0) {
+      await tx.update(user).set(updates).where(eq(user.id, id));
+    }
+
+    if (parsed.data.role === "camp_manager" && parsed.data.campId) {
+      const { campAssignment } = await import("@/db/schema/camps");
+      // Delete existing assignments for this user
+      await tx.delete(campAssignment).where(eq(campAssignment.userId, id));
+      // Insert new assignment
+      await tx.insert(campAssignment).values({
+        id: crypto.randomUUID(),
+        campId: parsed.data.campId,
+        userId: id,
+        createdAt: new Date(),
+      });
+    } else if (parsed.data.role !== undefined && parsed.data.role !== "camp_manager") {
+       const { campAssignment } = await import("@/db/schema/camps");
+       await tx.delete(campAssignment).where(eq(campAssignment.userId, id));
+    }
+  });
 
   return NextResponse.json({ success: true });
 }

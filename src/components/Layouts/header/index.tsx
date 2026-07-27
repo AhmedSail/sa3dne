@@ -1,6 +1,5 @@
 "use client";
 
-import { SearchIcon } from "@/assets/icons";
 import Image from "next/image";
 import Link from "next/link";
 import { useSidebarContext } from "../sidebar/sidebar-context";
@@ -15,7 +14,7 @@ export function Header() {
   const { language, toggleLanguage, t } = useLanguage();
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-stroke bg-white px-4 py-5 shadow-1 md:px-5 2xl:px-10 dark:border-stroke-dark dark:bg-gray-dark">
+    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-stroke bg-white px-4 py-5 shadow-1 md:px-5 2xl:px-10 dark:border-stroke-dark dark:bg-gray-dark print:hidden">
       <button
         onClick={toggleSidebar}
         className="rounded-lg border px-1.5 py-1 lg:hidden dark:border-stroke-dark dark:bg-[#020D1A] hover:dark:bg-[#FFFFFF1A]"
@@ -34,15 +33,6 @@ export function Header() {
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-2 2xsm:gap-4">
-        <div className="relative hidden w-full max-w-75 sm:block">
-          <input
-            type="search"
-            placeholder={t("searchPlaceholder")}
-            className="flex w-full items-center gap-3.5 rounded-full border bg-gray-2 py-3 pr-5 pl-13.25 transition-colors outline-none focus-visible:border-primary dark:border-dark-3 dark:bg-dark-2 dark:hover:border-dark-4 dark:hover:bg-dark-3 dark:hover:text-dark-6 dark:focus-visible:border-primary"
-          />
-
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-5 -translate-y-1/2 max-[1015px]:size-5" />
-        </div>
 
         <button
           onClick={toggleLanguage}

@@ -2,7 +2,8 @@
 
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -39,6 +40,7 @@ export default function ProvidersList({
   const [providers, setProviders] = useState<Provider[]>(initialProviders);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
   const [selectedProviderForHistory, setSelectedProviderForHistory] = useState<Provider | null>(null);
 
   const [form, setForm] = useState({
@@ -59,6 +61,7 @@ export default function ProvidersList({
 
   const handleEditClick = (prov: Provider) => {
     setEditingId(prov.id);
+    setShowForm(true);
     setForm({
       type: prov.type as "organization" | "independent_initiator",
       name: prov.name,
@@ -72,6 +75,7 @@ export default function ProvidersList({
 
   const handleCancelEdit = () => {
     setEditingId(null);
+    setShowForm(false);
     setForm({
       type: "organization",
       name: "",
@@ -87,7 +91,12 @@ export default function ProvidersList({
     e.preventDefault();
 
     if (!form.name.trim()) {
-      toast.error(t("fieldRequired"));
+      toast.error(language === "ar" ? "اسم المنظمة أو المبادرة مطلوب" : "Name of organization/initiative is required");
+      return;
+    }
+
+    if (!form.phone?.trim() && !form.email?.trim()) {
+      toast.error(language === "ar" ? "يجب إدخال رقم هاتف أو بريد إلكتروني للتواصل" : "Contact phone or email is required");
       return;
     }
 
@@ -181,20 +190,30 @@ export default function ProvidersList({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-dark dark:text-white">
-          {t("providersList")}
-        </h1>
-        <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
-          {language === "ar"
-            ? "تسجيل جهات المساعدات المعتمدة وربط حسابات المنظمات والمبادرين"
-            : "Register approved aid providers and link organization and initiator accounts"}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-dark dark:text-white">
+            {t("providersList")}
+          </h1>
+          <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
+            {language === "ar"
+              ? "تسجيل جهات المساعدات المعتمدة وربط حسابات المنظمات والمبادرين"
+              : "Register approved aid providers and link organization and initiator accounts"}
+          </p>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-opacity-90"
+          >
+            {language === "ar" ? "+ إضافة جهة جديدة" : "+ Add Provider"}
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6">
         {/* List Column */}
-        <div className="lg:col-span-2 rounded-xl border border-stroke bg-white shadow-default dark:border-dark-3 dark:bg-gray-dark overflow-hidden">
+        <div className="rounded-xl border border-stroke bg-white shadow-default dark:border-dark-3 dark:bg-gray-dark overflow-hidden">
           <div className="max-w-full overflow-x-auto">
             <table className="w-full table-auto text-sm text-right">
               <thead>
@@ -282,13 +301,28 @@ export default function ProvidersList({
             </table>
           </div>
         </div>
+      </div>
 
-        {/* Add/Edit Form Column */}
-        {isAdmin && (
-          <div className="lg:col-span-1 rounded-xl border border-stroke bg-white p-5 shadow-default dark:border-dark-3 dark:bg-gray-dark h-fit space-y-4">
-            <h2 className="text-base font-bold text-dark border-b border-stroke pb-2 dark:text-white dark:border-dark-3">
+      {/* Add/Edit Form Modal */}
+      {isAdmin && showForm && typeof document !== "undefined" && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+          onClick={(e) => { if (e.target === e.currentTarget) handleCancelEdit(); }}
+        >
+          <div className="w-full max-w-lg rounded-xl bg-white p-5 shadow-xl dark:bg-gray-dark border border-stroke dark:border-dark-3 space-y-4">
+            <div className="flex items-center justify-between border-b border-stroke pb-2 dark:border-dark-3">
+              <h2 className="text-base font-bold text-dark dark:text-white">
               {editingId ? t("editProvider") : t("addProvider")}
-            </h2>
+              </h2>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-dark-4 hover:bg-gray-2 hover:text-dark dark:text-dark-6 dark:hover:bg-dark-2 dark:hover:text-white text-xl leading-none"
+              >
+                &times;
+              </button>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -325,7 +359,7 @@ export default function ProvidersList({
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
                     {t("contactPerson")}
@@ -421,12 +455,16 @@ export default function ProvidersList({
               </div>
             </form>
           </div>
-        )}
-      </div>
+        </div>
+      , document.body)}
 
-      {/* Contribution History Modal (Placeholder) */}
-      {selectedProviderForHistory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      {/* Contribution History Modal */}
+      {selectedProviderForHistory && typeof document !== "undefined" && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setSelectedProviderForHistory(null); }}
+        >
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-gray-dark border border-stroke dark:border-dark-3 space-y-4">
             <div className="flex items-center justify-between border-b border-stroke pb-3 dark:border-dark-3">
               <h3 className="text-lg font-bold text-dark dark:text-white">
@@ -452,7 +490,7 @@ export default function ProvidersList({
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }

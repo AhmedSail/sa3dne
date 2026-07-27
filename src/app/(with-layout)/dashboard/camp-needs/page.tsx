@@ -42,8 +42,8 @@ export default async function CampNeedsPage() {
     familiesCount: familiesList.filter(f => f.campId === c.id).length,
   }));
 
-  // Providers only see the data, they cannot edit it. Admin/Camp Manager can edit.
-  const canEdit = ["admin", "camp_manager"].includes(role);
+  // Providers and Camp Managers only see the data, they cannot edit it. Admin can edit.
+  const canEdit = ["admin"].includes(role);
 
   return <CampNeedsClient data={campsWithStats} canEdit={canEdit} />;
 }

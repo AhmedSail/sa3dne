@@ -62,7 +62,8 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   // A draft line is never visible on the incoming-aid side.
-  if (scoped.contributionStatus !== "submitted") {
+  const draftStatuses = ["draft"];
+  if (draftStatuses.includes(scoped.contributionStatus)) {
     return NextResponse.json({ error: "Line not found" }, { status: 404 });
   }
 
@@ -119,7 +120,7 @@ export async function PATCH(
   if (scoped.forbidden) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  if (scoped.contributionStatus !== "submitted") {
+  if (scoped.contributionStatus === "draft") {
     return NextResponse.json(
       { error: "Only submitted contribution lines can be confirmed" },
       { status: 409 },
@@ -148,6 +149,13 @@ export async function PATCH(
       .update(aidContributionLine)
       .set(decision.updates)
       .where(eq(aidContributionLine.id, lineId));
+
+    // ── Auto-update parent contribution status ──────────────────────────────
+    // Note: The parent 'aid_contribution' table uses an enum that only supports
+    // 'draft', 'submitted', and 'cancelled'. The detailed receipt lifecycle 
+    // (received, partially_received, etc.) is tracked solely on the lines.
+    // Therefore, we don't need to mutate the parent status here.
+    // ────────────────────────────────────────────────────────────────────────
 
     // Accountability + notify the owning provider (best-effort).
     await logAudit({

@@ -11,6 +11,7 @@ export * from "./families";
 export * from "./aid-types";
 export * from "./providers";
 export * from "./contributions";
+export * from "./aid-requests";
 export * from "./complaints";
 export * from "./audit-logs";
 export * from "./notifications";

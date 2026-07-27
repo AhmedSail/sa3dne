@@ -1,0 +1,284 @@
+"use client";
+
+import { useLanguage } from "@/lib/i18n/language-context";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+
+type AidRequestRow = {
+  id: string;
+  campId: string;
+  campName: string;
+  aidTypeId: string;
+  aidTypeName: string;
+  requestedQuantity: number;
+  fulfilledQuantity: number;
+  unit: string;
+  urgencyLevel: string;
+  notes: string | null;
+  status: string;
+  createdAt: string;
+};
+
+function formatDate(value: string) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+const URGENCY_LABELS: Record<string, { ar: string; en: string }> = {
+  low: { ar: "منخفض", en: "Low" },
+  medium: { ar: "متوسط", en: "Medium" },
+  high: { ar: "مرتفع", en: "High" },
+  critical: { ar: "حرج", en: "Critical" },
+};
+
+const STATUS_LABELS: Record<string, { ar: string; en: string; color: string }> = {
+  open: { ar: "مفتوح", en: "Open", color: "bg-blue-100 text-blue-800" },
+  in_progress: { ar: "قيد التنفيذ", en: "In Progress", color: "bg-yellow-100 text-yellow-800" },
+};
+
+export default function AidRequestsList() {
+  const { language } = useLanguage();
+  const isAr = language === "ar";
+  
+  const [requests, setRequests] = useState<AidRequestRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [selectedRequest, setSelectedRequest] = useState<AidRequestRow | null>(null);
+  const [commitQuantity, setCommitQuantity] = useState("");
+  const [commitNotes, setCommitNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const fetchRequests = async () => {
+    try {
+      const res = await fetch("/api/aid-requests");
+      if (res.ok) {
+        const data = await res.json();
+        setRequests(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openRespondModal = (req: AidRequestRow) => {
+    setSelectedRequest(req);
+    setCommitQuantity("");
+    setCommitNotes("");
+  };
+
+  const handleRespond = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRequest) return;
+    
+    const qty = Number(commitQuantity);
+    const remaining = selectedRequest.requestedQuantity - selectedRequest.fulfilledQuantity;
+    
+    if (qty <= 0 || qty > remaining) {
+      toast.error(isAr ? `يجب أن تكون الكمية بين 1 و ${remaining}` : `Quantity must be between 1 and ${remaining}`);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/aid-requests/${selectedRequest.id}/respond`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          committedQuantity: qty,
+          notes: commitNotes,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success(isAr ? "تم إرسال المساهمة بنجاح" : "Contribution sent successfully");
+        setSelectedRequest(null);
+        fetchRequests(); // refresh list
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Error");
+      }
+    } catch (err) {
+      toast.error("Error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-dark dark:text-white">
+            {isAr ? "المساعدات المطلوبة للمخيمات" : "Camp Aid Requests"}
+          </h1>
+          <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
+            {isAr
+              ? "استعرض طلبات واحتياجات المخيمات المفتوحة وقدم مساهمتك"
+              : "Browse open camp requests and contribute"}
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-stroke bg-white shadow-default dark:border-dark-3 dark:bg-gray-dark overflow-hidden">
+        <div className="max-w-full overflow-x-auto">
+          <table className="w-full table-auto text-sm text-right">
+            <thead>
+              <tr className="border-b border-stroke bg-gray-2 dark:border-dark-3 dark:bg-dark-2">
+                <th className="whitespace-nowrap px-4 py-3 font-semibold text-dark-4 dark:text-dark-6">
+                  {isAr ? "المخيم" : "Camp"}
+                </th>
+                <th className="whitespace-nowrap px-4 py-3 font-semibold text-dark-4 dark:text-dark-6">
+                  {isAr ? "نوع المساعدة" : "Aid Type"}
+                </th>
+                <th className="whitespace-nowrap px-4 py-3 font-semibold text-dark-4 dark:text-dark-6">
+                  {isAr ? "المتبقي" : "Remaining"}
+                </th>
+                <th className="whitespace-nowrap px-4 py-3 font-semibold text-dark-4 dark:text-dark-6">
+                  {isAr ? "الأهمية" : "Urgency"}
+                </th>
+                <th className="whitespace-nowrap px-4 py-3 font-semibold text-dark-4 dark:text-dark-6">
+                  {isAr ? "الحالة" : "Status"}
+                </th>
+                <th className="whitespace-nowrap px-4 py-3 font-semibold text-dark-4 dark:text-dark-6">
+                  {isAr ? "تاريخ الطلب" : "Date"}
+                </th>
+                <th className="whitespace-nowrap px-4 py-3 font-semibold text-dark-4 dark:text-dark-6">
+                  {isAr ? "إجراءات" : "Actions"}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stroke dark:divide-dark-3">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-dark-4">Loading...</td>
+                </tr>
+              ) : requests.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-dark-4 dark:text-dark-6">
+                    {isAr ? "لا توجد طلبات مساعدة مفتوحة حالياً" : "No open aid requests found"}
+                  </td>
+                </tr>
+              ) : (
+                requests.map((r) => {
+                  const remaining = r.requestedQuantity - r.fulfilledQuantity;
+                  return (
+                    <tr key={r.id} className="hover:bg-gray-1 dark:hover:bg-dark-2">
+                      <td className="whitespace-nowrap px-4 py-3 text-dark dark:text-white">
+                        {r.campName}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-dark-4 dark:text-dark-6">
+                        {r.aidTypeName}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 font-bold text-red-500">
+                        {remaining} {r.unit}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <span className="text-xs text-dark-4">
+                          {isAr ? URGENCY_LABELS[r.urgencyLevel]?.ar : URGENCY_LABELS[r.urgencyLevel]?.en}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_LABELS[r.status]?.color}`}>
+                          {isAr ? STATUS_LABELS[r.status]?.ar : STATUS_LABELS[r.status]?.en}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-dark-4 dark:text-dark-6">
+                        {formatDate(r.createdAt)}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <button
+                          onClick={() => openRespondModal(r)}
+                          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-opacity-90"
+                        >
+                          {isAr ? "إرسال مساعدة" : "Contribute"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Respond Modal */}
+      {selectedRequest && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-default dark:bg-gray-dark">
+            <h2 className="mb-4 text-xl font-bold text-dark dark:text-white">
+              {isAr ? "إرسال مساعدة للمخيم" : "Contribute to Camp"}
+            </h2>
+            
+            <div className="mb-4 rounded-lg bg-gray-1 p-4 text-sm dark:bg-dark-2 text-dark dark:text-white">
+              <p><strong>{isAr ? "المخيم:" : "Camp:"}</strong> {selectedRequest.campName}</p>
+              <p><strong>{isAr ? "نوع المساعدة:" : "Aid Type:"}</strong> {selectedRequest.aidTypeName}</p>
+              <p>
+                <strong>{isAr ? "الكمية المتبقية:" : "Remaining Qty:"}</strong>{" "}
+                <span className="font-bold text-red-500">
+                  {selectedRequest.requestedQuantity - selectedRequest.fulfilledQuantity} {selectedRequest.unit}
+                </span>
+              </p>
+            </div>
+
+            <form onSubmit={handleRespond} className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-dark dark:text-white">
+                  {isAr ? "الكمية التي سترسلها *" : "Quantity to send *"}
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max={selectedRequest.requestedQuantity - selectedRequest.fulfilledQuantity}
+                  value={commitQuantity}
+                  onChange={(e) => setCommitQuantity(e.target.value)}
+                  className="w-full rounded-lg border border-stroke bg-transparent px-4 py-2 text-dark outline-none focus:border-primary dark:border-dark-3 dark:text-white"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-dark dark:text-white">
+                  {isAr ? "ملاحظات (اختياري)" : "Notes (Optional)"}
+                </label>
+                <textarea
+                  value={commitNotes}
+                  onChange={(e) => setCommitNotes(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-stroke bg-transparent px-4 py-2 text-dark outline-none focus:border-primary dark:border-dark-3 dark:text-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRequest(null)}
+                  className="px-4 py-2 text-sm font-medium text-dark-4 hover:text-dark dark:text-dark-6 dark:hover:text-white"
+                >
+                  {isAr ? "إلغاء" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-opacity-90 disabled:opacity-50"
+                >
+                  {submitting ? (isAr ? "جاري الإرسال..." : "Sending...") : (isAr ? "إرسال" : "Submit")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

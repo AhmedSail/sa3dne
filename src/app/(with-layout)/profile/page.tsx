@@ -105,11 +105,11 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-dark-4 dark:text-dark-6">
-              {isAr ? "البريد الإلكتروني" : "Email"}
+              {isAr ? "رقم الهوية / البريد الإلكتروني" : "ID Number / Email"}
             </label>
             <input
-              type="email"
-              value={session?.user?.email || ""}
+              type="text"
+              value={session?.user?.email?.replace("@sa3dne.local", "") || ""}
               disabled
               className="w-full rounded-lg border border-stroke bg-gray-2 px-4 py-3 text-sm text-dark-4 outline-none cursor-not-allowed dark:border-dark-3 dark:bg-dark-2 dark:text-dark-6"
             />

@@ -4,8 +4,8 @@ import { authClient } from "@/lib/auth/auth-client";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-
+import { useState, useMemo } from "react";
+import ExportButtons from "../ExportButtons";
 type User = {
   id: string;
   name: string;
@@ -26,10 +26,33 @@ export default function UsersList({
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRole, setFilterRole] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  
   const ITEMS_PER_PAGE = 10;
   
-  const totalPages = Math.ceil(initialUsers.length / ITEMS_PER_PAGE);
-  const currentUsers = initialUsers.slice(
+  const filteredUsers = useMemo(() => {
+    return initialUsers.filter((user) => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        user.name?.toLowerCase().includes(q) ||
+        user.email?.toLowerCase().includes(q) ||
+        user.phone?.includes(q);
+        
+      const matchesRole = filterRole === "all" || user.role === filterRole;
+      
+      const matchesStatus =
+        filterStatus === "all" ||
+        (filterStatus === "active" && !user.banned) ||
+        (filterStatus === "banned" && user.banned);
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [initialUsers, searchQuery, filterRole, filterStatus]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / ITEMS_PER_PAGE));
+  const currentUsers = filteredUsers.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
@@ -74,13 +97,74 @@ export default function UsersList({
             إنشاء وتعديل وإدارة حسابات المستخدمين
           </p>
         </div>
-        <Link
-          href="/dashboard/users/new"
-          className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-opacity-90"
-        >
-          <span className="text-lg leading-none">+</span>
-          إضافة مستخدم
-        </Link>
+        <div className="flex gap-3">
+          <ExportButtons 
+            data={filteredUsers}
+            filename="قائمة_المستخدمين"
+            columns={[
+              { key: "name", label: "الاسم" },
+              { key: "email", label: "البريد الإلكتروني" },
+              { key: "phone", label: "رقم الهاتف" },
+              { key: "role", label: "الدور" },
+              { key: "banned", label: "محظور" }
+            ]}
+          />
+          <Link
+            href="/dashboard/users/new"
+            className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-opacity-90 print:hidden"
+          >
+            <span className="text-lg leading-none">+</span>
+            إضافة مستخدم
+          </Link>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-3 print:hidden">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="البحث بالاسم، الإيميل، رقم الهاتف..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full rounded-lg border border-stroke bg-white px-4 py-2.5 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+          />
+        </div>
+        <div>
+          <select
+            value={filterRole}
+            onChange={(e) => {
+              setFilterRole(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full rounded-lg border border-stroke bg-white px-4 py-2.5 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+          >
+            <option value="all">كل الأدوار</option>
+            <option value="admin">مشرف النظام</option>
+            <option value="camp_manager">مدير مخيم</option>
+            <option value="org_representative">ممثل منظمة</option>
+            <option value="independent_initiator">مبادر مستقل</option>
+            <option value="beneficiary">مستفيد</option>
+            <option value="user">مستخدم عادي</option>
+          </select>
+        </div>
+        <div>
+          <select
+            value={filterStatus}
+            onChange={(e) => {
+              setFilterStatus(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full rounded-lg border border-stroke bg-white px-4 py-2.5 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+          >
+            <option value="all">كل الحالات</option>
+            <option value="active">نشط</option>
+            <option value="banned">محظور</option>
+          </select>
+        </div>
       </div>
 
       {/* Table Card */}
@@ -223,12 +307,12 @@ export default function UsersList({
         </div>
 
         {/* Footer count & Pagination */}
-        {initialUsers.length > 0 && (
+        {filteredUsers.length > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between border-t border-stroke px-4 py-3 dark:border-dark-3 gap-4">
             <p className="text-xs text-dark-4 dark:text-dark-6">
               إجمالي المستخدمين:{" "}
               <span className="font-semibold text-dark dark:text-white">
-                {initialUsers.length}
+                {filteredUsers.length}
               </span>
             </p>
             

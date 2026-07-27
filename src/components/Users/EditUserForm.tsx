@@ -12,15 +12,17 @@ type UserData = {
   email: string;
   role: string;
   phone?: string | null;
+  campId?: string | null;
 };
 
-export default function EditUserForm({ user }: { user: UserData }) {
+export default function EditUserForm({ user, camps }: { user: UserData; camps: {id: string, name: string}[] }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: user.name,
     phone: user.phone ?? "",
     role: user.role ?? "user",
+    campId: user.campId ?? "",
   });
 
   const handleChange = (
@@ -49,6 +51,7 @@ export default function EditUserForm({ user }: { user: UserData }) {
             name: form.name,
             phone: form.phone || null,
             role: form.role,
+            campId: form.role === "camp_manager" ? (form.campId || null) : null,
           }),
         });
         if (!res.ok) failed = true;
@@ -112,7 +115,7 @@ export default function EditUserForm({ user }: { user: UserData }) {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-              الدور
+              الدور (الصلاحية)
             </label>
             <select
               name="role"
@@ -121,13 +124,30 @@ export default function EditUserForm({ user }: { user: UserData }) {
               className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             >
               <option value="user">مستخدم عادي</option>
-              <option value="admin">مشرف النظام (System Admin)</option>
-              <option value="camp_manager">مدير مخيم (Camp Manager)</option>
-              <option value="org_representative">ممثل منظمة (Org Representative)</option>
-              <option value="independent_initiator">مبادر مساعدات مستقل (Independent Initiator)</option>
-              <option value="beneficiary">مستفيد (Beneficiary)</option>
+              <option value="beneficiary">مستفيد (عائلة)</option>
+              <option value="camp_manager">مدير مخيم</option>
+              <option value="admin">مشرف نظام</option>
             </select>
           </div>
+          
+          {form.role === "camp_manager" && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+                تعيين المخيم التابع له
+              </label>
+              <select
+                name="campId"
+                value={form.campId}
+                onChange={handleChange}
+                className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+              >
+                <option value="">-- اختر المخيم --</option>
+                {camps.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button

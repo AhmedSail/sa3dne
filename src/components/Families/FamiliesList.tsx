@@ -1,10 +1,11 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { useLanguage } from "@/lib/i18n/language-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { toast } from "sonner";
+import ExportButtons from "../ExportButtons";
 
 type FamilyWithCamp = {
   id: string;
@@ -151,19 +152,32 @@ export default function FamiliesList({
               : "Register and track families in camps for statistical purposes"}
           </p>
         </div>
-        {isManagerOrAdmin && (
-          <Link
-            href="/dashboard/families/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-opacity-90 self-start sm:self-auto"
-          >
-            <span className="text-lg leading-none">+</span>
-            {t("addFamily")}
-          </Link>
-        )}
+        <div className="flex gap-3">
+          <ExportButtons 
+            data={filteredFamilies}
+            filename="قائمة_العائلات"
+            columns={[
+              { key: "headName", label: "اسم رب الأسرة" },
+              { key: "nationalId", label: "رقم الهوية" },
+              { key: "phone", label: "رقم الهاتف" },
+              { key: "memberCount", label: "عدد الأفراد" },
+              { key: "campName", label: "المخيم" }
+            ]}
+          />
+          {isManagerOrAdmin && (
+            <Link
+              href="/dashboard/families/new"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-opacity-90 self-start sm:self-auto print:hidden"
+            >
+              <span className="text-lg leading-none">+</span>
+              {t("addFamily")}
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 print:hidden">
         <div className="rounded-xl border border-stroke bg-white p-5 shadow-default dark:border-dark-3 dark:bg-gray-dark">
           <p className="text-xs font-semibold text-dark-4 dark:text-dark-6 uppercase">
             {language === "ar" ? "إجمالي العائلات" : "Total Families"}
@@ -183,7 +197,7 @@ export default function FamiliesList({
       </div>
 
       {/* Filter / Search Dashboard Panel */}
-      <div className="mb-6 rounded-xl border border-stroke bg-white p-4 shadow-default dark:border-dark-3 dark:bg-gray-dark">
+      <div className="mb-6 rounded-xl border border-stroke bg-white p-4 shadow-default dark:border-dark-3 dark:bg-gray-dark print:hidden">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex-1 max-w-md">
             <input

@@ -5,6 +5,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { userRole } from "./enums";
+import { camp } from "./camps";
 
 /**
  * Authentication tables managed by better-auth.
@@ -22,6 +23,7 @@ export const user = pgTable("user", {
   image: text("image"),
   // Custom fields
   phone: text("phone"),
+  campId: text("camp_id").references(() => camp.id, { onDelete: "set null" }), // Scope for camp managers
   // Better Auth admin plugin fields
   role: userRole("role").notNull().default("user"),
   banned: boolean("banned").default(false),

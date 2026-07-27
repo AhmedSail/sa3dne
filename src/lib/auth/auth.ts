@@ -30,10 +30,39 @@ export const auth = betterAuth({
     minPasswordLength: 8,
   },
 
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google"],
+    },
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          return {
+            data: {
+              ...user,
+              emailVerified: true,
+            },
+          };
+        },
+      },
+    },
+  },
+
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
   }),
+
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
+  },
 
   plugins: [
     ...authorizationPlugins,

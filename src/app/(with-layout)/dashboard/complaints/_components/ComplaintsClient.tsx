@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import Link from "next/link";
 import dayjs from "dayjs";
 import { useLanguage } from "@/lib/i18n/language-context";
+import ExportButtons from "@/components/ExportButtons";
 
 interface ComplaintsClientProps {
   complaints: any[];
@@ -73,8 +74,21 @@ export default function ComplaintsClient({
         </div>
       ) : (
         <div className="rounded-[10px] border border-stroke bg-white px-5 pt-6 pb-2.5 shadow-1 dark:border-dark-3 dark:bg-gray-dark sm:px-7.5 xl:pb-1">
-          <div className="mb-6">
-            <form className="flex flex-col sm:flex-row gap-4">
+          <div className="mb-6 flex flex-col gap-4">
+            <div className="flex justify-end print:hidden">
+              <ExportButtons 
+                data={complaints}
+                filename="قائمة_الشكاوى"
+                columns={[
+                  { key: "trackingNumber", label: "رقم التتبع" },
+                  { key: "beneficiaryName", label: "مقدم الطلب" },
+                  { key: "type", label: "النوع" },
+                  { key: "createdAt", label: "تاريخ التقديم" },
+                  { key: "status", label: "الحالة" }
+                ]}
+              />
+            </div>
+            <form className="flex flex-col sm:flex-row gap-4 print:hidden">
               <input
                 type="text"
                 name="keyword"

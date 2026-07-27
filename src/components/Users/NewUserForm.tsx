@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { createUserAction } from "@/lib/actions/users";
 
-export default function NewUserForm() {
+export default function NewUserForm({ camps = [] }: { camps?: {id: string, name: string}[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -16,6 +16,7 @@ export default function NewUserForm() {
     password: "",
     phone: "",
     role: "user" as "user" | "admin" | "camp_manager" | "org_representative" | "independent_initiator" | "beneficiary",
+    campId: "",
   });
 
   const handleChange = (
@@ -26,6 +27,20 @@ export default function NewUserForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!form.name.trim()) {
+      toast.error("يرجى إدخال اسم المستخدم");
+      return;
+    }
+    if (!form.email.trim()) {
+      toast.error("يرجى إدخال البريد الإلكتروني");
+      return;
+    }
+    if (!form.password || form.password.length < 8) {
+      toast.error("يجب أن تتكون كلمة المرور من 8 أحرف على الأقل");
+      return;
+    }
+
     setLoading(true);
 
     const res = await createUserAction({
@@ -34,6 +49,7 @@ export default function NewUserForm() {
       password: form.password,
       role: form.role,
       phone: form.phone || null,
+      campId: form.role === "camp_manager" ? (form.campId || null) : null,
     });
 
     setLoading(false);
@@ -127,7 +143,7 @@ export default function NewUserForm() {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-              الدور
+              الدور (الصلاحية)
             </label>
             <select
               name="role"
@@ -136,15 +152,32 @@ export default function NewUserForm() {
               className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             >
               <option value="user">مستخدم عادي</option>
-              <option value="admin">مشرف النظام (System Admin)</option>
-              <option value="camp_manager">مدير مخيم (Camp Manager)</option>
-              <option value="org_representative">ممثل منظمة (Org Representative)</option>
-              <option value="independent_initiator">مبادر مساعدات مستقل (Independent Initiator)</option>
-              <option value="beneficiary">مستفيد (Beneficiary)</option>
+              <option value="beneficiary">مستفيد (عائلة)</option>
+              <option value="camp_manager">مدير مخيم</option>
+              <option value="admin">مشرف نظام</option>
             </select>
           </div>
+          
+          {form.role === "camp_manager" && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+                تعيين المخيم التابع له
+              </label>
+              <select
+                name="campId"
+                value={form.campId}
+                onChange={handleChange}
+                className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+              >
+                <option value="">-- اختر المخيم --</option>
+                {camps.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-4 pt-4">
             <button
               type="submit"
               disabled={loading}

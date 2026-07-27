@@ -14,20 +14,11 @@ export async function updateCampNeedLevel(campId: string, newLevel: "low" | "med
   if (!session) return { error: "غير مصرح" };
 
   const role = (session.user as any).role;
-  if (role !== "admin" && role !== "camp_manager") {
+  if (role !== "admin") {
     return { error: "غير مصرح" };
   }
 
   try {
-    if (role === "camp_manager") {
-      const assignments = await db.query.campAssignment.findMany({
-        where: eq(campAssignment.userId, session.user.id),
-      });
-      const campIds = assignments.map(a => a.campId);
-      if (!campIds.includes(campId)) {
-        return { error: "غير مصرح لك بتعديل هذا المخيم" };
-      }
-    }
 
     const [existing] = await db
       .select({ needLevel: camp.needLevel })
