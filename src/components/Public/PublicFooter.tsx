@@ -19,11 +19,14 @@ export default function PublicFooter() {
         <div className="flex flex-col items-center justify-between gap-6 border-b border-gray-100 pb-8 sm:flex-row dark:border-white/5">
           {/* Links */}
           <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-gray-400">
-            <Link href="#" className="transition-colors hover:text-[#10b981]">
-              {t("mockupTerms")}
+            <Link href="/" className="transition-colors hover:text-[#10b981]">
+              {t("landingHomeLink")}
             </Link>
-            <Link href="#" className="transition-colors hover:text-[#10b981]">
-              {t("mockupPrivacy")}
+            <Link href="/#features" className="transition-colors hover:text-[#10b981]">
+              {t("landingFeaturesLink")}
+            </Link>
+            <Link href="/#how-it-works" className="transition-colors hover:text-[#10b981]">
+              {t("landingHowItWorksLink")}
             </Link>
             <Link href="/feedback" className="transition-colors hover:text-[#10b981]">
               {t("landingContactLink")}

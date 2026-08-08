@@ -278,7 +278,7 @@ export default function LandingClient({ stats }: { stats: LandingStats }) {
               className="group relative flex items-center gap-2.5 overflow-hidden rounded-xl bg-[#10b981] px-8 py-4 text-sm font-black text-white shadow-[0_8px_30px_rgba(16,185,129,0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(16,185,129,0.5)]"
             >
               <span className="absolute inset-0 bg-gradient-to-r from-[#10b981] to-[#059669] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-              <span className="relative">تقديم شكوى أو مقترح</span>
+              <span className="relative">{t("landingSubmitBtn")}</span>
               <svg className={`relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 ${isAr ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7-7 7M3 12h18" />
               </svg>
@@ -453,9 +453,8 @@ export default function LandingClient({ stats }: { stats: LandingStats }) {
                 <div className="flex flex-wrap items-center justify-center gap-4">
                   <Link
                     href="/feedback"
-                    className="group relative overflow-hidden rounded-xl bg-white px-8 py-4 text-sm font-black text-[#10b981] shadow-[0_8px_30px_rgba(0,0,0,0.15)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.2)]"
                   >
-                    تقديم شكوى أو مقترح
+                    {t("landingContactLink")}
                   </Link>
                 </div>
               </div>

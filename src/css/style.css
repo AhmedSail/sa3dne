@@ -392,6 +392,11 @@
   body {
     @apply bg-gray-2 text-dark-5 dark:bg-[#020D1A] dark:text-dark-6;
   }
+
+  /* Force dark mode styles on native select dropdown options */
+  .dark option {
+    @apply bg-gray-dark text-white;
+  }
 }
 
 /* third-party libraries CSS */

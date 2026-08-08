@@ -8,6 +8,8 @@ export * from "./enums";
 export * from "./auth";
 export * from "./camps";
 export * from "./families";
+export * from "./family_requests";
+
 export * from "./aid-types";
 export * from "./providers";
 export * from "./contributions";

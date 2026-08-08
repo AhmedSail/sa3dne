@@ -16,6 +16,7 @@ export default function PublicHeader() {
   const pathname = usePathname();
   const session = useSession();
   const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState("");
   const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -26,19 +27,43 @@ export default function PublicHeader() {
     return () => clearTimeout(timer);
   }, []);
 
-  /* ── Scroll shadow effect ── */
+  /* ── Scroll shadow effect & ScrollSpy ── */
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 20);
+      
+      if (window.location.pathname === "/") {
+        const sections = ["how-it-works", "features"];
+        let current = "";
+        for (const section of sections) {
+          const el = document.getElementById(section);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top <= 300) {
+              current = section;
+              break;
+            }
+          }
+        }
+        setActiveSection(current);
+      }
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
+    setTimeout(onScroll, 100);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const navLinks = [
-    { href: "/", label: t("landingHomeLink") },
-    { href: "/#features", label: t("landingFeaturesLink") },
-    { href: "/#how-it-works", label: t("landingHowItWorksLink") },
-    { href: "/feedback", label: t("landingContactLink") },
-  ];
+    { href: "/", id: "", label: t("landingHomeLink") },
+    { href: "/#features", id: "features", label: t("landingFeaturesLink") },
+    { href: "/#how-it-works", id: "how-it-works", label: t("landingHowItWorksLink") },
+    { href: "/feedback", id: "", label: t("landingContactLink") },
+  ].map(link => ({
+    ...link,
+    isActive: link.id 
+      ? pathname === "/" && activeSection === link.id
+      : pathname === link.href && !activeSection
+  }));
 
   return (
     <>
@@ -109,20 +134,17 @@ export default function PublicHeader() {
 
           {/* ── Desktop Nav ── */}
           <nav className="hidden items-center gap-8 text-sm font-bold md:flex">
-            {navLinks.map((link, i) => {
-              const isActive = pathname === link.href;
-              return (
+            {navLinks.map((link, i) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={`nav-link-line nav-item-${i + 1} relative pb-0.5 transition-colors duration-200 hover:text-[#10b981] ${
-                    isActive ? "active text-[#10b981]" : "text-gray-400"
+                    link.isActive ? "active text-[#10b981]" : "text-gray-400"
                   }`}
                 >
                   {link.label}
                 </Link>
-              );
-            })}
+            ))}
           </nav>
 
           {/* ── Right Actions ── */}
@@ -181,7 +203,9 @@ export default function PublicHeader() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
-                className="rounded-xl px-4 py-3 text-sm font-bold text-gray-500 transition-colors hover:bg-[#10b981]/8 hover:text-[#10b981] dark:text-gray-300"
+                className={`rounded-xl px-4 py-3 text-sm font-bold transition-colors hover:bg-[#10b981]/8 hover:text-[#10b981] ${
+                  link.isActive ? "bg-[#10b981]/10 text-[#10b981]" : "text-gray-500 dark:text-gray-300"
+                }`}
               >
                 {link.label}
               </Link>

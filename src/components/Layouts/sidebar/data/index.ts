@@ -28,6 +28,14 @@ export const NAV_DATA = [
         items: [],
       },
       {
+        title: "Update Requests",
+        langKey: "updateRequests",
+        icon: Icons.Calendar,
+        url: "/dashboard/family-requests",
+        roles: ["admin", "camp_manager"],
+        items: [],
+      },
+      {
         title: "Aid Types",
         langKey: "aidTypes",
         icon: Icons.Alphabet,

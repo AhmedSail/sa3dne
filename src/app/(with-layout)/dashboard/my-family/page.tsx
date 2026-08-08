@@ -49,13 +49,23 @@ export default async function MyFamilyPage() {
     .from(camp);
 
   let members: any[] = [];
+  let requests: any[] = [];
   if (familyData[0]) {
     const { familyMember } = await import("@/db/schema/families");
+    const { familyUpdateRequest } = await import("@/db/schema/family_requests");
+    const { desc } = await import("drizzle-orm");
+
     members = await db
       .select()
       .from(familyMember)
       .where(eq(familyMember.familyId, familyData[0].id))
       .orderBy(familyMember.createdAt);
+      
+    requests = await db
+      .select()
+      .from(familyUpdateRequest)
+      .where(eq(familyUpdateRequest.familyId, familyData[0].id))
+      .orderBy(desc(familyUpdateRequest.createdAt));
   }
 
   return (
@@ -64,6 +74,7 @@ export default async function MyFamilyPage() {
       familyData={familyData[0] ?? null}
       camps={camps}
       members={members}
+      requests={requests}
     />
   );
 }

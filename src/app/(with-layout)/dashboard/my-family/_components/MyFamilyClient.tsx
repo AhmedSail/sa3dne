@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { submitUpdateFamilyRequest } from "@/lib/actions/family-requests";
 
 type FamilyData = {
   id: string;
@@ -26,11 +27,13 @@ export default function MyFamilyClient({
   familyData,
   camps,
   members = [],
+  requests = [],
 }: {
   nationalId: string;
   familyData: FamilyData;
   camps: Camp[];
   members?: any[];
+  requests?: any[];
 }) {
   const { language } = useLanguage();
   const isAr = language === "ar";
@@ -67,15 +70,27 @@ export default function MyFamilyClient({
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch("/api/my-family", {
-        method: familyData ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, nationalId }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Error");
-      toast.success(isAr ? "تم حفظ بيانات العائلة بنجاح" : "Family data saved successfully");
-      router.refresh();
+      if (!familyData) {
+        // Initial creation directly via API
+        const res = await fetch("/api/my-family", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...form, nationalId }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Error");
+        toast.success(isAr ? "تم حفظ بيانات العائلة بنجاح" : "Family data saved successfully");
+        router.refresh();
+      } else {
+        // Update via Request
+        const res = await submitUpdateFamilyRequest({
+          familyId: familyData.id,
+          type: "update_family_info",
+          payload: { fields: form },
+        });
+        if (res.error) throw new Error(res.error);
+        toast.success(isAr ? "تم إرسال طلب التحديث للمراجعة" : "Update request submitted for review");
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -91,16 +106,14 @@ export default function MyFamilyClient({
     }
     setAddingMember(true);
     try {
-      const res = await fetch("/api/my-family/members", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(memberForm),
+      const res = await submitUpdateFamilyRequest({
+        familyId: familyData.id,
+        type: "add_member",
+        payload: { member: memberForm },
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Error");
-      toast.success(isAr ? "تم إضافة الفرد بنجاح" : "Member added successfully");
+      if (res.error) throw new Error(res.error);
+      toast.success(isAr ? "تم إرسال طلب إضافة الفرد للمراجعة" : "Add member request submitted for review");
       
-      // Reset form
       setMemberForm({
         name: "",
         nationalId: "",
@@ -110,12 +123,6 @@ export default function MyFamilyClient({
         birthDate: "",
       });
       setShowMemberForm(false);
-      
-      // Auto-update member count
-      const newCount = (members?.length || 0) + 2; // Head + Members + New Member
-      setForm(prev => ({ ...prev, memberCount: newCount }));
-      
-      router.refresh();
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -123,20 +130,24 @@ export default function MyFamilyClient({
     }
   };
 
-  const handleDeleteMember = async (id: string) => {
-    if (!confirm(isAr ? "هل أنت متأكد من حذف هذا الفرد؟" : "Are you sure?")) return;
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const executeDeleteMember = async () => {
+    if (!confirmDeleteId) return;
+    const id = confirmDeleteId;
+    const memberName = members.find((m: any) => m.id === id)?.name || id;
+
+    setConfirmDeleteId(null);
     setDeletingMember(id);
     try {
-      const res = await fetch(`/api/my-family/members/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Error");
-      toast.success(isAr ? "تم الحذف بنجاح" : "Deleted successfully");
-      
-      // Auto-update member count
-      const newCount = Math.max(1, (members?.length || 1)); // Head + Members - deleted member
-      setForm(prev => ({ ...prev, memberCount: newCount }));
-
-      router.refresh();
+      if (!familyData) throw new Error("No family data");
+      const res = await submitUpdateFamilyRequest({
+        familyId: familyData.id,
+        type: "remove_member",
+        payload: { memberId: id, memberName: memberName },
+      });
+      if (res.error) throw new Error(res.error);
+      toast.success(isAr ? "تم إرسال طلب الحذف للمراجعة" : "Deletion request submitted for review");
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -150,6 +161,19 @@ export default function MyFamilyClient({
     middle_area: isAr ? "المنطقة الوسطى" : "Middle Area",
     khan_yunis: isAr ? "خان يونس" : "Khan Yunis",
     rafah: isAr ? "رفح" : "Rafah",
+  };
+
+  const typeLabels: Record<string, string> = {
+    add_member: isAr ? "إضافة فرد" : "Add Member",
+    remove_member: isAr ? "إزالة فرد" : "Remove Member",
+    update_family_info: isAr ? "تحديث معلومات العائلة" : "Update Family Info",
+    update_member: isAr ? "تحديث فرد" : "Update Member",
+  };
+
+  const statusLabels: Record<string, string> = {
+    pending: isAr ? "قيد المراجعة" : "Pending",
+    approved: isAr ? "مقبول" : "Approved",
+    rejected: isAr ? "مرفوض" : "Rejected",
   };
 
   return (
@@ -269,16 +293,16 @@ export default function MyFamilyClient({
               className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 disabled:opacity-60"
             >
               {saving
-                ? isAr ? "جاري الحفظ..." : "Saving..."
+                ? isAr ? "جاري الإرسال..." : "Sending..."
                 : familyData
-                ? isAr ? "حفظ التغييرات" : "Save Changes"
+                ? isAr ? "إرسال طلب التحديث" : "Submit Update Request"
                 : isAr ? "تسجيل عائلتي" : "Register My Family"}
             </button>
           </div>
         </form>
       </div>
       
-      {/* أفراد العائلة (يظهر فقط إذا تم حفظ بيانات العائلة) */}
+      {/* أفراد العائلة */}
       {familyData && (
         <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -294,7 +318,7 @@ export default function MyFamilyClient({
               onClick={() => setShowMemberForm(!showMemberForm)}
               className="inline-flex justify-center rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90"
             >
-              {showMemberForm ? (isAr ? "إلغاء" : "Cancel") : (isAr ? "+ إضافة فرد جديد" : "+ Add Member")}
+              {showMemberForm ? (isAr ? "إلغاء" : "Cancel") : (isAr ? "+ طلب إضافة فرد" : "+ Request Add Member")}
             </button>
           </div>
           
@@ -393,7 +417,7 @@ export default function MyFamilyClient({
                   disabled={addingMember}
                   className="flex w-full sm:w-auto items-center justify-center rounded bg-primary px-6 py-2 font-medium text-white hover:bg-opacity-90 disabled:opacity-50"
                 >
-                  {addingMember ? (isAr ? "جاري الإضافة..." : "Adding...") : (isAr ? "إضافة الفرد" : "Add Member")}
+                  {addingMember ? (isAr ? "جاري الإرسال..." : "Sending...") : (isAr ? "إرسال الطلب" : "Submit Request")}
                 </button>
               </div>
             </form>
@@ -445,11 +469,11 @@ export default function MyFamilyClient({
                       </td>
                       <td className="px-4 py-3 text-left">
                         <button
-                          onClick={() => handleDeleteMember(member.id)}
+                          onClick={() => setConfirmDeleteId(member.id)}
                           disabled={deletingMember === member.id}
                           className="text-red-500 hover:text-red-600 disabled:opacity-50"
                         >
-                          {deletingMember === member.id ? "..." : (isAr ? "حذف" : "Delete")}
+                          {deletingMember === member.id ? "..." : (isAr ? "طلب حذف" : "Request Delete")}
                         </button>
                       </td>
                     </tr>
@@ -457,6 +481,74 @@ export default function MyFamilyClient({
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* طلبات التحديث */}
+      {familyData && requests && requests.length > 0 && (
+        <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark mt-6">
+          <h2 className="mb-4 text-xl font-bold text-dark dark:text-white">
+            {isAr ? "طلبات التحديث" : "Update Requests"}
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full table-auto text-sm">
+              <thead>
+                <tr className="border-b border-stroke bg-gray-2 text-right dark:border-dark-3 dark:bg-dark-2">
+                  <th className="px-4 py-3 font-medium text-dark dark:text-white">{isAr ? "نوع الطلب" : "Request Type"}</th>
+                  <th className="px-4 py-3 font-medium text-dark dark:text-white">{isAr ? "الحالة" : "Status"}</th>
+                  <th className="px-4 py-3 font-medium text-dark dark:text-white">{isAr ? "تاريخ الطلب" : "Date"}</th>
+                  <th className="px-4 py-3 font-medium text-dark dark:text-white">{isAr ? "سبب الرفض" : "Rejection Reason"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((req) => (
+                  <tr key={req.id} className="border-b border-stroke dark:border-dark-3">
+                    <td className="px-4 py-3 text-dark dark:text-white">{typeLabels[req.type] || req.type}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-block rounded px-2 py-1 text-xs font-medium ${req.status === 'pending' ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' : req.status === 'approved' ? 'bg-green/10 text-green' : 'bg-red/10 text-red'}`}>
+                        {statusLabels[req.status] || req.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-dark-4 dark:text-dark-6">
+                      {req.createdAt ? new Date(req.createdAt).toISOString().split('T')[0] : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-red-500">
+                      {req.rejectionReason || "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {/* نافذة تأكيد الحذف */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg dark:bg-gray-dark border border-stroke dark:border-dark-3">
+            <h3 className="mb-4 text-lg font-bold text-dark dark:text-white">
+              {isAr ? "تأكيد الحذف" : "Confirm Deletion"}
+            </h3>
+            <p className="mb-6 text-sm text-dark-4 dark:text-dark-6">
+              {isAr 
+                ? "هل أنت متأكد من رغبتك في إرسال طلب حذف هذا الفرد من عائلتك؟" 
+                : "Are you sure you want to request the deletion of this member from your family?"}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="rounded-lg bg-gray-2 px-4 py-2 text-sm font-medium text-dark hover:bg-gray-3 dark:bg-dark-3 dark:text-white dark:hover:bg-dark-4"
+              >
+                {isAr ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                onClick={executeDeleteMember}
+                className="rounded-lg bg-red px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90"
+              >
+                {isAr ? "نعم، تأكيد الحذف" : "Yes, confirm deletion"}
+              </button>
+            </div>
           </div>
         </div>
       )}

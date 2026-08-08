@@ -1,11 +1,12 @@
 "use client";
 
-import { authClient } from "@/lib/auth/auth-client";
+import { banUserAction, unbanUserAction } from "@/lib/actions/users";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import ExportButtons from "../ExportButtons";
+
 type User = {
   id: string;
   name: string;
@@ -73,12 +74,12 @@ export default function UsersList({
         setLoadingId(null);
         return;
       }
-      const { error } = await authClient.admin.banUser({ userId: user.id });
-      if (error) toast.error("فشل في حظر المستخدم");
+      const result = await banUserAction(user.id);
+      if (result.error) toast.error(result.error);
       else toast.success("تم حظر المستخدم بنجاح");
     } else {
-      const { error } = await authClient.admin.unbanUser({ userId: user.id });
-      if (error) toast.error("فشل في رفع الحظر عن المستخدم");
+      const result = await unbanUserAction(user.id);
+      if (result.error) toast.error(result.error);
       else toast.success("تم رفع الحظر عن المستخدم");
     }
     setLoadingId(null);

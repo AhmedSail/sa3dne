@@ -17,6 +17,19 @@ export const userRole = pgEnum("user_role", [
   "beneficiary",
 ]);
 
+export const familyRequestStatus = pgEnum("family_request_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+
+export const familyRequestType = pgEnum("family_request_type", [
+  "add_member",
+  "remove_member",
+  "update_family_info",
+  "update_member",
+]);
+
 export const gazaGovernorate = pgEnum("gaza_governorate", [
   "north_gaza",
   "gaza_city",

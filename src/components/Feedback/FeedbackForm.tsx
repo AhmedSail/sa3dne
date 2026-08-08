@@ -4,6 +4,7 @@ import { useState } from "react";
 import { submitComplaint } from "@/lib/actions/complaints";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 type Camp = { id: string; name: string };
 type ContactSettings = {
@@ -21,6 +22,8 @@ const inputClass =
   "w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm font-medium text-dark outline-none backdrop-blur-sm transition-all duration-200 placeholder:text-gray-300 focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30 dark:focus:border-[#10b981]";
 
 export default function FeedbackForm({ camps, settings }: { camps: Camp[], settings?: ContactSettings }) {
+  const { t, language } = useLanguage();
+  const isAr = language === "ar";
   const [loading, setLoading] = useState(false);
   const [successTrackingNumber, setSuccessTrackingNumber] = useState<string | null>(null);
 
@@ -42,7 +45,7 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
     if (res.error) {
       toast.error(res.error);
     } else if (res.trackingNumber) {
-      toast.success("تم الإرسال بنجاح");
+      toast.success(t("feedbackSuccessToast"));
       setSuccessTrackingNumber(res.trackingNumber);
     }
 
@@ -52,7 +55,7 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
   /* ── Success State ── */
   if (successTrackingNumber) {
     return (
-      <div className="flex w-full flex-col items-center justify-center px-4 py-16" dir="rtl">
+      <div className="flex w-full flex-col items-center justify-center px-4 py-16" dir={isAr ? "rtl" : "ltr"}>
         <div className="w-full max-w-lg">
           <div className="relative overflow-hidden rounded-3xl border border-[#10b981]/20 bg-white p-10 shadow-[0_20px_60px_rgba(16,185,129,0.1)] dark:bg-[#0f1c2e]">
             {/* glow */}
@@ -67,15 +70,15 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
               </div>
 
               <h2 className="mb-3 text-2xl font-black text-dark dark:text-white">
-                تم استلام طلبك بنجاح! 🎉
+                {t("feedbackSuccessTitle")}
               </h2>
               <p className="mb-8 text-sm font-medium text-gray-400">
-                احتفظ برقم التتبع أدناه لمتابعة حالة طلبك في أي وقت.
+                {t("feedbackSuccessDesc")}
               </p>
 
               {/* Tracking number */}
               <div className="mb-8 w-full rounded-2xl border-2 border-dashed border-[#10b981]/30 bg-[#10b981]/5 p-6">
-                <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#10b981]">رقم التتبع</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#10b981]">{t("feedbackTrackingNum")}</p>
                 <p className="text-3xl font-black tracking-wider text-dark dark:text-white">
                   {successTrackingNumber}
                 </p>
@@ -89,13 +92,13 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
-                  تتبع طلبك الآن
+                  {t("feedbackTrackNowBtn")}
                 </Link>
                 <Link
                   href="/"
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3.5 text-sm font-black text-gray-500 transition-all hover:-translate-y-0.5 hover:border-[#10b981]/30 dark:border-white/10 dark:bg-transparent dark:text-gray-300"
                 >
-                  العودة للرئيسية
+                  {t("feedbackBackHomeBtn")}
                 </Link>
               </div>
             </div>
@@ -107,30 +110,30 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
 
   /* ── Form ── */
   return (
-    <div className="w-full px-4 py-12" dir="rtl">
-      <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[1fr_1.6fr]">
+    <div className="w-full px-4 py-12" dir={isAr ? "rtl" : "ltr"}>
+      <div className={`mx-auto grid max-w-5xl gap-10 lg:grid-cols-[1fr_1.6fr] ${!isAr ? "text-left" : ""}`}>
 
         {/* ── Left: Info Panel ── */}
         <div className="flex flex-col gap-8">
           <div>
             <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#10b981]/10 px-4 py-1.5 text-xs font-bold text-[#10b981]">
               <span className="h-2 w-2 animate-pulse rounded-full bg-[#10b981]" />
-              متاح للجميع · بدون حساب
+              {t("feedbackAvailableToAll")}
             </span>
             <h1 className="mt-4 text-3xl font-black text-dark dark:text-white sm:text-4xl">
-              تقديم شكوى أو مقترح
+              {t("feedbackSubmitTitle")}
             </h1>
             <p className="mt-4 text-base font-medium leading-relaxed text-gray-400">
-              نحن هنا للاستماع. يمكنك تقديم شكواك أو اقتراحك مباشرةً لإدارة مخيمك بكل سرية وأمان.
+              {t("feedbackSubmitDesc")}
             </p>
           </div>
 
           {/* Steps */}
           <div className="flex flex-col gap-5">
             {[
-              { num: "01", title: "اختر المخيم والنوع", desc: "حدد نوع طلبك والمخيم التابع له." },
-              { num: "02", title: "أدخل بياناتك والتفاصيل", desc: "اكتب تفاصيل طلبك بوضوح." },
-              { num: "03", title: "احتفظ برقم التتبع", desc: "ستحصل على رقم فوري لمتابعة طلبك." },
+              { num: "01", title: t("feedbackStep1Title"), desc: t("feedbackStep1Desc") },
+              { num: "02", title: t("feedbackStep2Title"), desc: t("feedbackStep2Desc") },
+              { num: "03", title: t("feedbackStep3Title"), desc: t("feedbackStep3Desc") },
             ].map((step) => (
               <div key={step.num} className="flex gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#10b981]/10 text-sm font-black text-[#10b981]">
@@ -146,13 +149,13 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
 
           {/* Track link */}
           <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5 dark:border-blue-500/10 dark:bg-blue-500/5">
-            <p className="mb-2 text-sm font-black text-dark dark:text-white">لديك رقم تتبع سابق؟</p>
+            <p className="mb-2 text-sm font-black text-dark dark:text-white">{t("feedbackHaveTracking")}</p>
             <Link
               href="/track"
               className="inline-flex items-center gap-2 text-sm font-bold text-blue-500 hover:underline"
             >
-              تتبع طلبك من هنا
-              <svg className="h-4 w-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {t("feedbackTrackFromHere")}
+              <svg className={`h-4 w-4 ${isAr ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7-7 7M3 12h18" />
               </svg>
             </Link>
@@ -161,13 +164,13 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
           {/* Contact Methods Panel */}
           {settings && (settings.whatsapp || settings.email || settings.facebook || settings.phone) && (
             <div className="rounded-2xl border border-[#10b981]/20 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#0f1c2e]">
-              <h3 className="mb-4 text-lg font-black text-dark dark:text-white">تواصل معنا مباشرة</h3>
+              <h3 className="mb-4 text-lg font-black text-dark dark:text-white">{t("feedbackContactUs")}</h3>
               <div className="flex flex-col gap-3">
                 {settings.whatsapp && (
                   <a href={`https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-xl bg-[#25D366]/10 p-3 text-[#25D366] transition hover:bg-[#25D366]/20">
                     <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-[#25D366]/80">واتساب</span>
+                      <span className="text-xs font-bold text-[#25D366]/80">{t("feedbackWhatsapp")}</span>
                       <span className="text-sm font-black" dir="ltr">{settings.whatsapp}</span>
                     </div>
                   </a>
@@ -179,7 +182,7 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-blue-500/80">البريد الإلكتروني</span>
+                      <span className="text-xs font-bold text-blue-500/80">{t("feedbackEmail")}</span>
                       <span className="text-sm font-black text-left w-full block" dir="ltr">{settings.email}</span>
                     </div>
                   </a>
@@ -191,7 +194,7 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-purple-500/80">رقم الهاتف</span>
+                      <span className="text-xs font-bold text-purple-500/80">{t("feedbackPhoneNum")}</span>
                       <span className="text-sm font-black" dir="ltr">{settings.phone}</span>
                     </div>
                   </a>
@@ -234,23 +237,23 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
             {/* Type */}
             <div>
               <label className="mb-2 block text-sm font-black text-dark dark:text-white">
-                نوع الرسالة <span className="text-red-500">*</span>
+                {t("feedbackMessageType")} <span className="text-red-500">*</span>
               </label>
-              <select name="type" required className={inputClass}>
-                <option value="">اختر النوع...</option>
-                <option value="complaint">🔴 شكوى</option>
-                <option value="suggestion">💡 مقترح</option>
-                <option value="unmet_need">📦 احتياج غير ملبى</option>
+              <select name="type" required className={`${inputClass} [&>option]:dark:bg-[#0f1c2e]`}>
+                <option value="">{t("feedbackSelectType")}</option>
+                <option value="complaint">{t("feedbackTypeComplaint")}</option>
+                <option value="suggestion">{t("feedbackTypeSuggestion")}</option>
+                <option value="unmet_need">{t("feedbackTypeUnmetNeed")}</option>
               </select>
             </div>
 
             {/* Camp */}
             <div>
               <label className="mb-2 block text-sm font-black text-dark dark:text-white">
-                المخيم التابع له <span className="text-red-500">*</span>
+                {t("feedbackRelatedCamp")} <span className="text-red-500">*</span>
               </label>
-              <select name="campId" required className={inputClass}>
-                <option value="">اختر المخيم...</option>
+              <select name="campId" required className={`${inputClass} [&>option]:dark:bg-[#0f1c2e]`}>
+                <option value="">{t("feedbackSelectCamp")}</option>
                 {camps.map((camp) => (
                   <option key={camp.id} value={camp.id}>{camp.name}</option>
                 ))}
@@ -260,13 +263,13 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
             {/* Name */}
             <div>
               <label className="mb-2 block text-sm font-black text-dark dark:text-white">
-                الاسم بالكامل <span className="text-red-500">*</span>
+                {t("feedbackFullName")} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="beneficiaryName"
                 required
-                placeholder="أدخل اسمك الكامل"
+                placeholder={t("feedbackEnterFullName")}
                 className={inputClass}
               />
             </div>
@@ -274,13 +277,13 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
             {/* Phone */}
             <div>
               <label className="mb-2 block text-sm font-black text-dark dark:text-white">
-                رقم الهاتف{" "}
-                <span className="text-xs font-medium text-gray-400">(اختياري)</span>
+                {t("feedbackPhoneNum")}{" "}
+                <span className="text-xs font-medium text-gray-400">{t("feedbackOptional")}</span>
               </label>
               <input
                 type="tel"
                 name="phone"
-                placeholder="أدخل رقم هاتفك"
+                placeholder={t("feedbackEnterPhone")}
                 className={inputClass}
               />
             </div>
@@ -288,13 +291,13 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
             {/* Details */}
             <div>
               <label className="mb-2 block text-sm font-black text-dark dark:text-white">
-                التفاصيل <span className="text-red-500">*</span>
+                {t("feedbackDetails")} <span className="text-red-500">*</span>
               </label>
               <textarea
                 name="details"
                 required
                 rows={5}
-                placeholder="اكتب تفاصيل الشكوى أو المقترح هنا..."
+                placeholder={t("feedbackWriteDetails")}
                 className={`${inputClass} resize-none`}
               />
             </div>
@@ -311,14 +314,14 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  جاري الإرسال...
+                  {t("feedbackSending")}
                 </>
               ) : (
                 <>
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
-                  إرسال الطلب
+                  {t("feedbackSubmitBtn")}
                 </>
               )}
             </button>

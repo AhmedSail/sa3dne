@@ -68,7 +68,15 @@ export default function SigninWithPassword() {
     setLoading(false);
 
     if (error) {
-      toast.error(t("signInError"));
+      // Check if the user is banned
+      if (error.code === "USER_BANNED" || error.message?.toLowerCase().includes("banned")) {
+        toast.error(
+          t("bannedError"),
+          { duration: 8000, id: "banned-error" }
+        );
+      } else {
+        toast.error(t("signInError"));
+      }
       return;
     }
 
