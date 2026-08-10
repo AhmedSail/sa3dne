@@ -1,5 +1,6 @@
 import Signin from "@/components/Auth/Signin";
 import { AuthBanner } from "@/components/Auth/AuthBanner";
+import { AuthPageHeading } from "@/components/Auth/AuthPageHeading";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -23,17 +24,10 @@ export default function SignIn() {
                 className="mx-auto object-contain"
               />
             </Link>
-            <h1 className="text-2xl font-bold text-dark dark:text-white sm:text-3xl">
-              تسجيل الدخول
-            </h1>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              مرحباً بك مجدداً في منصة ساعدني
-            </p>
+            <AuthPageHeading type="signin" withSubtitle />
           </div>
           <div className="hidden xl:block mb-8 text-center">
-             <h1 className="text-2xl font-bold text-dark dark:text-white sm:text-3xl">
-              تسجيل الدخول
-            </h1>
+            <AuthPageHeading type="signin" />
           </div>
           <Signin />
         </div>

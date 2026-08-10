@@ -21,6 +21,13 @@ type ContactSettings = {
 const inputClass =
   "w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm font-medium text-dark outline-none backdrop-blur-sm transition-all duration-200 placeholder:text-gray-300 focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30 dark:focus:border-[#10b981]";
 
+/*
+ * Selects reuse the input styling but need an opaque background: browsers paint
+ * the native dropdown from the control's own colour, and a translucent one
+ * leaves the popup washed out.
+ */
+const selectClass = `${inputClass} bg-white dark:bg-dark-2`;
+
 export default function FeedbackForm({ camps, settings }: { camps: Camp[], settings?: ContactSettings }) {
   const { t, language } = useLanguage();
   const isAr = language === "ar";
@@ -43,7 +50,7 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
     const res = await submitComplaint(data);
 
     if (res.error) {
-      toast.error(res.error);
+      toast.error(t(res.error));
     } else if (res.trackingNumber) {
       toast.success(t("feedbackSuccessToast"));
       setSuccessTrackingNumber(res.trackingNumber);
@@ -239,7 +246,7 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
               <label className="mb-2 block text-sm font-black text-dark dark:text-white">
                 {t("feedbackMessageType")} <span className="text-red-500">*</span>
               </label>
-              <select name="type" required className={`${inputClass} [&>option]:dark:bg-[#0f1c2e]`}>
+              <select name="type" required className={selectClass}>
                 <option value="">{t("feedbackSelectType")}</option>
                 <option value="complaint">{t("feedbackTypeComplaint")}</option>
                 <option value="suggestion">{t("feedbackTypeSuggestion")}</option>
@@ -252,7 +259,7 @@ export default function FeedbackForm({ camps, settings }: { camps: Camp[], setti
               <label className="mb-2 block text-sm font-black text-dark dark:text-white">
                 {t("feedbackRelatedCamp")} <span className="text-red-500">*</span>
               </label>
-              <select name="campId" required className={`${inputClass} [&>option]:dark:bg-[#0f1c2e]`}>
+              <select name="campId" required className={selectClass}>
                 <option value="">{t("feedbackSelectCamp")}</option>
                 {camps.map((camp) => (
                   <option key={camp.id} value={camp.id}>{camp.name}</option>

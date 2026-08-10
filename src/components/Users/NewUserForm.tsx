@@ -1,6 +1,6 @@
 "use client";
 
-import { authClient } from "@/lib/auth/auth-client";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { createUserAction } from "@/lib/actions/users";
 
 export default function NewUserForm({ camps = [] }: { camps?: {id: string, name: string}[] }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -29,15 +30,15 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
     e.preventDefault();
     
     if (!form.name.trim()) {
-      toast.error("يرجى إدخال اسم المستخدم");
+      toast.error(t("nameRequired"));
       return;
     }
     if (!form.email.trim()) {
-      toast.error("يرجى إدخال البريد الإلكتروني");
+      toast.error(t("emailRequired"));
       return;
     }
     if (!form.password || form.password.length < 8) {
-      toast.error("يجب أن تتكون كلمة المرور من 8 أحرف على الأقل");
+      toast.error(t("passwordMinLengthError"));
       return;
     }
 
@@ -55,15 +56,11 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
     setLoading(false);
 
     if (res.error) {
-      toast.error(
-        res.error.includes("already")
-          ? "البريد الإلكتروني مستخدم بالفعل"
-          : "فشل في إنشاء المستخدم: " + res.error,
-      );
+      toast.error(t(res.error));
       return;
     }
 
-    toast.success("تم إنشاء المستخدم بنجاح");
+    toast.success(t("userCreated"));
     router.push("/dashboard/users");
     router.refresh();
   };
@@ -72,10 +69,10 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-dark dark:text-white">
-          إضافة مستخدم جديد
+          {t("addUser")}
         </h1>
         <p className="text-sm text-dark-4 dark:text-dark-6">
-          أدخل بيانات المستخدم الجديد
+          {t("addUserSubtitle")}
         </p>
       </div>
 
@@ -83,7 +80,7 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-              الاسم الكامل
+              {t("nameLabel")}
             </label>
             <input
               type="text"
@@ -91,14 +88,14 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
               required
               value={form.name}
               onChange={handleChange}
-              placeholder="محمد أحمد"
+              placeholder={t("namePlaceholder")}
               className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             />
           </div>
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-              البريد الإلكتروني
+              {t("emailAddress")}
             </label>
             <input
               type="email"
@@ -113,7 +110,7 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-              كلمة المرور
+              {t("passwordLabel")}
             </label>
             <input
               type="password"
@@ -122,14 +119,14 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
               minLength={8}
               value={form.password}
               onChange={handleChange}
-              placeholder="8 أحرف على الأقل"
+              placeholder={t("passwordMinLengthPlaceholder")}
               className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             />
           </div>
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-              رقم الهاتف (اختياري)
+              {t("phoneOptional")}
             </label>
             <input
               type="tel"
@@ -143,7 +140,7 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-              الدور (الصلاحية)
+              {t("userRole")}
             </label>
             <select
               name="role"
@@ -151,17 +148,17 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
               onChange={handleChange}
               className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             >
-              <option value="user">مستخدم عادي</option>
-              <option value="beneficiary">مستفيد (عائلة)</option>
-              <option value="camp_manager">مدير مخيم</option>
-              <option value="admin">مشرف نظام</option>
+              <option value="user">{t("roleUser")}</option>
+              <option value="beneficiary">{t("roleBeneficiary")}</option>
+              <option value="camp_manager">{t("roleCampManager")}</option>
+              <option value="admin">{t("roleAdmin")}</option>
             </select>
           </div>
           
           {form.role === "camp_manager" && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-                تعيين المخيم التابع له
+                {t("assignCampToUser")}
               </label>
               <select
                 name="campId"
@@ -169,7 +166,7 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
                 onChange={handleChange}
                 className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
               >
-                <option value="">-- اختر المخيم --</option>
+                <option value="">{t("selectCampPlaceholder")}</option>
                 {camps.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -183,13 +180,13 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
               disabled={loading}
               className="flex-1 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-opacity-90 disabled:opacity-70"
             >
-              {loading ? "جاري الإنشاء..." : "إنشاء المستخدم"}
+              {loading ? t("creating") : t("createUser")}
             </button>
             <Link
               href="/dashboard/users"
               className="flex-1 rounded-lg border border-stroke px-5 py-2.5 text-center text-sm font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
             >
-              إلغاء
+              {t("cancel")}
             </Link>
           </div>
         </form>

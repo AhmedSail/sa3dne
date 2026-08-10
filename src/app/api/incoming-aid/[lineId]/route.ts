@@ -8,7 +8,11 @@ import {
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { getAssignedCampIds } from "@/lib/contributions/access";
-import { buildReceiptUpdate, confirmSchema } from "@/lib/contributions/receipt";
+import {
+  allowedActionsFor,
+  buildReceiptUpdate,
+  confirmSchema,
+} from "@/lib/contributions/receipt";
 import { AuditAction, logAudit } from "@/lib/audit";
 import { notifyProviderOfReceipt } from "@/lib/notifications/service";
 import { eq } from "drizzle-orm";
@@ -61,9 +65,9 @@ export async function GET(
   if (scoped.forbidden) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  // A draft line is never visible on the incoming-aid side.
-  const draftStatuses = ["draft"];
-  if (draftStatuses.includes(scoped.contributionStatus)) {
+  // Only submitted contributions surface on the incoming-aid side; drafts and
+  // cancelled contributions stay invisible.
+  if (scoped.contributionStatus !== "submitted") {
     return NextResponse.json({ error: "Line not found" }, { status: 404 });
   }
 
@@ -120,9 +124,21 @@ export async function PATCH(
   if (scoped.forbidden) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  if (scoped.contributionStatus === "draft") {
+  // Only a live, submitted contribution can be received: a draft was never
+  // promised and a cancelled one has been withdrawn.
+  if (scoped.contributionStatus !== "submitted") {
     return NextResponse.json(
       { error: "Only submitted contribution lines can be confirmed" },
+      { status: 409 },
+    );
+  }
+
+  // Settled lines (received / rejected) accept no further action, and a
+  // partially received line only accepts "complete".
+  const allowed = allowedActionsFor(scoped.line.status);
+  if (allowed.length === 0) {
+    return NextResponse.json(
+      { error: "This line is already settled and cannot be confirmed again" },
       { status: 409 },
     );
   }
@@ -134,6 +150,16 @@ export async function PATCH(
       return NextResponse.json(
         { error: "Invalid data", details: parsed.error.flatten() },
         { status: 400 },
+      );
+    }
+
+    // A stale page could still post an action the line has outgrown.
+    if (!allowed.includes(parsed.data.action)) {
+      return NextResponse.json(
+        {
+          error: `Action '${parsed.data.action}' is not allowed for a line in status '${scoped.line.status}'`,
+        },
+        { status: 409 },
       );
     }
 

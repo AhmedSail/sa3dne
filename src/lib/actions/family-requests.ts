@@ -15,7 +15,7 @@ export async function submitUpdateFamilyRequest(data: {
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
-    return { error: "يرجى تسجيل الدخول أولاً" };
+    return { error: "errSignInFirst" };
   }
 
   try {
@@ -27,8 +27,33 @@ export async function submitUpdateFamilyRequest(data: {
 
     if (existingPending) {
       return {
-        error: "يوجد لديك طلب تحديث قيد المراجعة بالفعل. يرجى الانتظار حتى تتم معالجته.",
+        error: "errPendingRequestExists",
       };
+    }
+
+    // A "no-op" update request would only waste a reviewer's time, so the
+    // server refuses it too rather than trusting the disabled submit button.
+    if (data.type === "update_family_info") {
+      const current = await db.query.family.findFirst({
+        where: eq(family.id, data.familyId),
+      });
+      if (!current) {
+        return { error: "errFamilyNotFound" };
+      }
+
+      const fields = (data.payload?.fields ?? {}) as Record<string, unknown>;
+      const normalize = (value: unknown) => String(value ?? "").trim();
+      const hasChanges = Object.keys(fields).some(
+        (key) =>
+          normalize(fields[key]) !==
+          normalize((current as Record<string, unknown>)[key]),
+      );
+
+      if (!hasChanges) {
+        return {
+          error: "errNoChangesToSubmit",
+        };
+      }
     }
 
     await db.insert(familyUpdateRequest).values({
@@ -46,14 +71,14 @@ export async function submitUpdateFamilyRequest(data: {
     return { success: true };
   } catch (error: any) {
     console.error("Submit family update request error:", error);
-    return { error: error.message || "حدث خطأ أثناء تقديم الطلب" };
+    return { error: error.message || "errSubmitRequestFailed" };
   }
 }
 
 export async function approveFamilyRequest(requestId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session || ((session.user as any).role !== "camp_manager" && (session.user as any).role !== "admin")) {
-    return { error: "غير مصرح لك بهذه العملية" };
+    return { error: "errNotAuthorized" };
   }
 
   try {
@@ -62,7 +87,7 @@ export async function approveFamilyRequest(requestId: string) {
     });
 
     if (!request || request.status !== "pending") {
-      return { error: "الطلب غير موجود أو تمت معالجته مسبقاً" };
+      return { error: "errRequestNotFoundOrProcessed" };
     }
 
     await db.transaction(async (tx) => {
@@ -125,18 +150,18 @@ export async function approveFamilyRequest(requestId: string) {
     return { success: true };
   } catch (error: any) {
     console.error("Approve family request error:", error);
-    return { error: error.message || "حدث خطأ أثناء الموافقة على الطلب" };
+    return { error: error.message || "errApproveFailed" };
   }
 }
 
 export async function rejectFamilyRequest(requestId: string, reason: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session || ((session.user as any).role !== "camp_manager" && (session.user as any).role !== "admin")) {
-    return { error: "غير مصرح لك بهذه العملية" };
+    return { error: "errNotAuthorized" };
   }
 
   if (!reason || reason.trim() === "") {
-    return { error: "يرجى كتابة سبب الرفض" };
+    return { error: "errRejectionReasonRequired" };
   }
 
   try {
@@ -156,6 +181,6 @@ export async function rejectFamilyRequest(requestId: string, reason: string) {
     return { success: true };
   } catch (error: any) {
     console.error("Reject family request error:", error);
-    return { error: error.message || "حدث خطأ أثناء رفض الطلب" };
+    return { error: error.message || "errRejectFailed" };
   }
 }

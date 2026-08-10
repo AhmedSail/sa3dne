@@ -22,7 +22,7 @@ type CampDetailsData = {
 };
 
 export default function CampDetails({ camp }: { camp: CampDetailsData }) {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
 
   const getNeedLevelDetails = (level: string) => {
     switch (level) {
@@ -61,14 +61,14 @@ export default function CampDetails({ camp }: { camp: CampDetailsData }) {
             {camp.name}
           </h1>
           <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
-            {language === "ar" ? "تفاصيل المخيم والمدراء المكلفين" : "Camp details and assigned managers"}
+            {t("campDetailsSubtitle")}
           </p>
         </div>
         <Link
           href="/dashboard/camps"
           className="inline-flex items-center gap-1.5 rounded-lg border border-stroke px-4 py-2.5 text-sm font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
         >
-          {language === "ar" ? "العودة للقائمة" : "Back to List"}
+          {t("backToList")}
         </Link>
       </div>
 
@@ -76,7 +76,7 @@ export default function CampDetails({ camp }: { camp: CampDetailsData }) {
         {/* Info Card */}
         <div className="col-span-2 rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark space-y-4">
           <h2 className="text-lg font-bold text-dark border-b border-stroke pb-2 dark:text-white dark:border-dark-3">
-            {language === "ar" ? "معلومات المخيم" : "Camp Information"}
+            {t("campInformation")}
           </h2>
 
           <div className="grid grid-cols-2 gap-4">
@@ -137,7 +137,7 @@ export default function CampDetails({ camp }: { camp: CampDetailsData }) {
           <div className="space-y-3">
             {camp.assignedManagers.length === 0 ? (
               <p className="text-sm text-dark-4 dark:text-dark-6">
-                {language === "ar" ? "لا يوجد مدراء مكلفين بهذا المخيم حالياً." : "No managers currently assigned to this camp."}
+                {t("noAssignedManagers")}
               </p>
             ) : (
               camp.assignedManagers.map((m) => (

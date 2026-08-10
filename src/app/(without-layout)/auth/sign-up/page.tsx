@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { AuthBanner } from "@/components/Auth/AuthBanner";
+import { AuthPageHeading } from "@/components/Auth/AuthPageHeading";
 import SignupWithPassword from "@/components/Auth/SignupWithPassword";
 import { Suspense } from "react";
 
@@ -25,19 +26,12 @@ export default function SignUp() {
                 className="mx-auto object-contain"
               />
             </Link>
-            <h1 className="text-2xl font-bold text-dark dark:text-white sm:text-3xl">
-              إنشاء حساب جديد
-            </h1>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              انضم إلى منصة ساعدني الآن
-            </p>
+            <AuthPageHeading type="signup" withSubtitle />
           </div>
           <div className="hidden xl:block mb-8 text-center">
-            <h1 className="text-2xl font-bold text-dark dark:text-white sm:text-3xl">
-              إنشاء حساب جديد
-            </h1>
+            <AuthPageHeading type="signup" />
           </div>
-          <Suspense fallback={<div>جاري التحميل...</div>}>
+          <Suspense fallback={null}>
             <SignupWithPassword />
           </Suspense>
         </div>

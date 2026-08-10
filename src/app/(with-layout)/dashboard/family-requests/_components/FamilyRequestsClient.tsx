@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { approveFamilyRequest, rejectFamilyRequest } from "@/lib/actions/family-requests";
 
 export default function FamilyRequestsClient({ requests }: { requests: any[] }) {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   const isAr = language === "ar";
   const router = useRouter();
   
@@ -24,7 +24,7 @@ export default function FamilyRequestsClient({ requests }: { requests: any[] }) 
     setProcessing(id);
     try {
       const res = await approveFamilyRequest(id);
-      if (res.error) throw new Error(res.error);
+      if (res.error) throw new Error(t(res.error));
       toast.success(isAr ? "تمت الموافقة وتحديث البيانات بنجاح" : "Approved and data updated successfully");
       router.refresh();
     } catch (err: any) {
@@ -42,7 +42,7 @@ export default function FamilyRequestsClient({ requests }: { requests: any[] }) 
     setProcessing(id);
     try {
       const res = await rejectFamilyRequest(id, rejectReason);
-      if (res.error) throw new Error(res.error);
+      if (res.error) throw new Error(t(res.error));
       toast.success(isAr ? "تم رفض الطلب بنجاح" : "Request rejected successfully");
       setRejectingId(null);
       setRejectReason("");
@@ -187,7 +187,7 @@ export default function FamilyRequestsClient({ requests }: { requests: any[] }) 
         </div>
       </div>
 
-      {/* نافذة تأكيد الموافقة */}
+      {/* Approval confirmation dialog */}
       {confirmApproveId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg dark:bg-gray-dark border border-stroke dark:border-dark-3">

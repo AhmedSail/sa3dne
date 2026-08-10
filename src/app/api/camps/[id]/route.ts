@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { camp, campAssignment, user } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { getAssignedCampIds } from "@/lib/contributions/access";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -26,6 +27,15 @@ export async function GET(
   }
 
   const { id } = await params;
+
+  // Server-side scope: a Camp Manager may only read a camp they are assigned to.
+  if (session.user.role === "camp_manager") {
+    const assigned = await getAssignedCampIds(session.user.id);
+    if (!assigned.includes(id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const campData = await db.select().from(camp).where(eq(camp.id, id)).limit(1);
 
   if (campData.length === 0) {

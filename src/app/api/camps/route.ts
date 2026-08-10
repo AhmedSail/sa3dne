@@ -1,6 +1,8 @@
 import { db } from "@/db";
 import { camp } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { getAssignedCampIds } from "@/lib/contributions/access";
+import { inArray } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -19,7 +21,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get active camps (status = 'active')
+  // Server-side scope: a Camp Manager only ever gets their assigned camps.
+  if (session.user.role === "camp_manager") {
+    const assignedCampIds = await getAssignedCampIds(session.user.id);
+    if (assignedCampIds.length === 0) {
+      return NextResponse.json([]);
+    }
+    const assignedCamps = await db
+      .select()
+      .from(camp)
+      .where(inArray(camp.id, assignedCampIds));
+    return NextResponse.json(assignedCamps);
+  }
+
   const camps = await db.select().from(camp);
   return NextResponse.json(camps);
 }

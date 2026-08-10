@@ -41,7 +41,7 @@ export default function ComplaintStatusForm({
     });
 
     if (res.error) {
-      toast.error(res.error);
+      toast.error(t(res.error));
     } else {
       toast.success(t("statusUpdated" as any));
       router.refresh();

@@ -11,11 +11,11 @@ import { AuditAction, logAudit } from "@/lib/audit";
 
 export async function updateCampNeedLevel(campId: string, newLevel: "low" | "medium" | "high" | "critical") {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { error: "غير مصرح" };
+  if (!session) return { error: "errNotAuthorized" };
 
   const role = (session.user as any).role;
   if (role !== "admin") {
-    return { error: "غير مصرح" };
+    return { error: "errNotAuthorized" };
   }
 
   try {
@@ -26,7 +26,7 @@ export async function updateCampNeedLevel(campId: string, newLevel: "low" | "med
       .where(eq(camp.id, campId))
       .limit(1);
 
-    if (!existing) return { error: "المخيم غير موجود" };
+    if (!existing) return { error: "errCampNotFound" };
 
     await db.update(camp).set({ needLevel: newLevel }).where(eq(camp.id, campId));
 
@@ -46,6 +46,6 @@ export async function updateCampNeedLevel(campId: string, newLevel: "low" | "med
     return { success: true };
   } catch (error) {
     console.error(error);
-    return { error: "حدث خطأ أثناء التحديث" };
+    return { error: "errUpdateFailed" };
   }
 }

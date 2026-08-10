@@ -1,6 +1,7 @@
 "use client";
 
 import { ShowcaseSection } from "@/components/Layouts/showcase-section";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { updateContactSettings } from "@/lib/actions/settings";
@@ -17,6 +18,7 @@ export interface ContactSettingsData {
 }
 
 export function ContactSettingsForm({ initialData }: { initialData: ContactSettingsData }) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState<ContactSettingsData>({
     whatsapp: initialData.whatsapp || "",
     email: initialData.email || "",
@@ -45,12 +47,12 @@ export function ContactSettingsForm({ initialData }: { initialData: ContactSetti
       const updatePromise = updateContactSettings(formData);
 
       toast.promise(updatePromise, {
-        loading: "جاري حفظ الإعدادات...",
+        loading: t("savingSettings"),
         success: (data) => {
           if (data.error) throw new Error(data.error);
-          return "تم حفظ الإعدادات بنجاح!";
+          return t("settingsSaved");
         },
-        error: (err) => err.message || "فشل حفظ الإعدادات",
+        error: (err) => err.message || t("settingsSaveFailed"),
       });
 
       await updatePromise;
@@ -62,21 +64,21 @@ export function ContactSettingsForm({ initialData }: { initialData: ContactSetti
   };
 
   return (
-    <ShowcaseSection title="إعدادات التواصل وحسابات التواصل الاجتماعي" className="p-7!">
+    <ShowcaseSection title={t("contactSettingsTitle")} className="p-7!">
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {/* WhatsApp */}
           <div>
             <label className="mb-2.5 block text-sm font-medium text-dark dark:text-white">
-              رقم الواتساب (مع رمز الدولة)
+              {t("whatsappNumberLabel")}
             </label>
             <input
               type="text"
               name="whatsapp"
               value={formData.whatsapp || ""}
               onChange={handleInputChange}
-              placeholder="مثال: +970599000000"
+              placeholder={t("whatsappNumberPlaceholder")}
               className="w-full rounded-xl border border-gray-200 bg-transparent px-5 py-3 text-sm outline-none transition focus:border-[#10b981] active:border-[#10b981] dark:border-white/10 dark:focus:border-[#10b981]"
               disabled={isLoading}
             />
@@ -85,14 +87,14 @@ export function ContactSettingsForm({ initialData }: { initialData: ContactSetti
           {/* Email */}
           <div>
             <label className="mb-2.5 block text-sm font-medium text-dark dark:text-white">
-              البريد الإلكتروني
+              {t("emailAddress")}
             </label>
             <input
               type="email"
               name="email"
               value={formData.email || ""}
               onChange={handleInputChange}
-              placeholder="مثال: info@sa3dne.com"
+              placeholder={t("emailExamplePlaceholder")}
               className="w-full rounded-xl border border-gray-200 bg-transparent px-5 py-3 text-sm outline-none transition focus:border-[#10b981] active:border-[#10b981] dark:border-white/10 dark:focus:border-[#10b981]"
               disabled={isLoading}
             />
@@ -101,14 +103,14 @@ export function ContactSettingsForm({ initialData }: { initialData: ContactSetti
           {/* Phone */}
           <div>
             <label className="mb-2.5 block text-sm font-medium text-dark dark:text-white">
-              رقم الهاتف
+              {t("phone")}
             </label>
             <input
               type="text"
               name="phone"
               value={formData.phone || ""}
               onChange={handleInputChange}
-              placeholder="مثال: 1700000000"
+              placeholder={t("phoneExamplePlaceholder")}
               className="w-full rounded-xl border border-gray-200 bg-transparent px-5 py-3 text-sm outline-none transition focus:border-[#10b981] active:border-[#10b981] dark:border-white/10 dark:focus:border-[#10b981]"
               disabled={isLoading}
             />
@@ -117,7 +119,7 @@ export function ContactSettingsForm({ initialData }: { initialData: ContactSetti
           {/* Facebook */}
           <div>
             <label className="mb-2.5 block text-sm font-medium text-dark dark:text-white">
-              رابط فيسبوك
+              {t("facebookUrlLabel")}
             </label>
             <input
               type="text"
@@ -133,7 +135,7 @@ export function ContactSettingsForm({ initialData }: { initialData: ContactSetti
           {/* Twitter / X */}
           <div>
             <label className="mb-2.5 block text-sm font-medium text-dark dark:text-white">
-              رابط إكس (تويتر)
+              {t("twitterUrlLabel")}
             </label>
             <input
               type="text"
@@ -149,7 +151,7 @@ export function ContactSettingsForm({ initialData }: { initialData: ContactSetti
           {/* Instagram */}
           <div>
             <label className="mb-2.5 block text-sm font-medium text-dark dark:text-white">
-              رابط إنستغرام
+              {t("instagramUrlLabel")}
             </label>
             <input
               type="text"
@@ -165,7 +167,7 @@ export function ContactSettingsForm({ initialData }: { initialData: ContactSetti
           {/* LinkedIn */}
           <div>
             <label className="mb-2.5 block text-sm font-medium text-dark dark:text-white">
-              رابط لينكدإن
+              {t("linkedinUrlLabel")}
             </label>
             <input
               type="text"
@@ -182,13 +184,13 @@ export function ContactSettingsForm({ initialData }: { initialData: ContactSetti
         {/* Address */}
         <div>
           <label className="mb-2.5 block text-sm font-medium text-dark dark:text-white">
-            العنوان النصي
+            {t("addressLabel")}
           </label>
           <textarea
             name="address"
             value={formData.address || ""}
             onChange={handleInputChange}
-            placeholder="مثال: غزة، الرمال، شارع عمر المختار"
+            placeholder={t("addressPlaceholder")}
             rows={3}
             className="w-full rounded-xl border border-gray-200 bg-transparent px-5 py-3 text-sm outline-none transition focus:border-[#10b981] active:border-[#10b981] dark:border-white/10 dark:focus:border-[#10b981]"
             disabled={isLoading}
@@ -201,7 +203,7 @@ export function ContactSettingsForm({ initialData }: { initialData: ContactSetti
             disabled={isLoading}
             className="flex justify-center rounded-xl bg-[#10b981] px-8 py-3 text-sm font-medium text-white hover:bg-[#059669] disabled:opacity-50"
           >
-            {isLoading ? "جاري الحفظ..." : "حفظ التغييرات"}
+            {isLoading ? t("saving") : t("saveChanges")}
           </button>
         </div>
       </form>

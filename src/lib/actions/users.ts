@@ -8,10 +8,17 @@ import { user, account, session } from "@/db/schema/auth";
 import { hashPassword } from "better-auth/crypto";
 import { eq } from "drizzle-orm";
 
+/**
+ * Server-side outcomes are reported as translation keys rather than sentences.
+ * The caller resolves them with `t(...)`, so a message reaches the user in the
+ * language they picked; a raw exception message that is not a key passes
+ * through the dictionary lookup unchanged.
+ */
+
 export async function createUserAction(data: { name: string, email: string, password: string, role: string, phone: string | null, campId?: string | null }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session || (session.user as any).role !== "admin") {
-    return { error: "غير مصرح لك بإضافة مستخدمين. يرجى تسجيل الخروج والدخول مجدداً إذا كنت متأكداً من صلاحياتك." };
+    return { error: "errNotAllowedToCreateUsers" };
   }
 
   try {
@@ -20,7 +27,7 @@ export async function createUserAction(data: { name: string, email: string, pass
     });
 
     if (existing) {
-      return { error: "البريد الإلكتروني مستخدم بالفعل" };
+      return { error: "emailAlreadyUsed" };
     }
 
     const userId = crypto.randomUUID();
@@ -63,17 +70,17 @@ export async function createUserAction(data: { name: string, email: string, pass
     return { success: true };
   } catch (error: any) {
     console.error("Create user error:", error);
-    return { error: error.message || "حدث خطأ أثناء الإنشاء" };
+    return { error: error.message || "errCreateFailed" };
   }
 }
 
 export async function banUserAction(targetUserId: string) {
   const sess = await auth.api.getSession({ headers: await headers() });
   if (!sess || (sess.user as any).role !== "admin") {
-    return { error: "غير مصرح لك بهذه العملية" };
+    return { error: "errNotAuthorized" };
   }
   if (sess.user.id === targetUserId) {
-    return { error: "لا يمكنك حظر حسابك الشخصي" };
+    return { error: "cannotBanSelf" };
   }
   try {
     // Delete all active sessions for the banned user
@@ -86,14 +93,14 @@ export async function banUserAction(targetUserId: string) {
     return { success: true };
   } catch (error: any) {
     console.error("Ban user error:", error);
-    return { error: error.message || "حدث خطأ أثناء الحظر" };
+    return { error: error.message || "errBanFailed" };
   }
 }
 
 export async function unbanUserAction(targetUserId: string) {
   const sess = await auth.api.getSession({ headers: await headers() });
   if (!sess || (sess.user as any).role !== "admin") {
-    return { error: "غير مصرح لك بهذه العملية" };
+    return { error: "errNotAuthorized" };
   }
   try {
     await db.update(user)
@@ -103,7 +110,7 @@ export async function unbanUserAction(targetUserId: string) {
     return { success: true };
   } catch (error: any) {
     console.error("Unban user error:", error);
-    return { error: error.message || "حدث خطأ أثناء رفع الحظر" };
+    return { error: error.message || "errUnbanFailed" };
   }
 }
 

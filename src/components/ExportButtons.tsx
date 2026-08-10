@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 interface ExportButtonsProps {
   data: any[];
@@ -9,6 +10,8 @@ interface ExportButtonsProps {
 }
 
 export default function ExportButtons({ data, filename, columns }: ExportButtonsProps) {
+  const { t, dir } = useLanguage();
+
   const handleExportCSV = () => {
     // We generate an HTML table and save it as .xls.
     // Excel will natively parse this and maintain RTL direction, column widths, and formatting.
@@ -22,9 +25,9 @@ export default function ExportButtons({ data, filename, columns }: ExportButtons
           <x:ExcelWorkbook>
             <x:ExcelWorksheets>
               <x:ExcelWorksheet>
-                <x:Name>البيانات</x:Name>
+                <x:Name>${t("exportSheetName")}</x:Name>
                 <x:WorksheetOptions>
-                  <x:DisplayRightToLeft/>
+                  ${dir === "rtl" ? "<x:DisplayRightToLeft/>" : ""}
                 </x:WorksheetOptions>
               </x:ExcelWorksheet>
             </x:ExcelWorksheets>
@@ -32,12 +35,12 @@ export default function ExportButtons({ data, filename, columns }: ExportButtons
         </xml>
         <![endif]-->
         <style>
-          table { border-collapse: collapse; width: 100%; direction: rtl; }
+          table { border-collapse: collapse; width: 100%; direction: ${dir}; }
           th { background-color: #f3f4f6; border: 1px solid #ddd; padding: 8px; font-weight: bold; text-align: center; }
           td { border: 1px solid #ddd; padding: 8px; text-align: center; mso-number-format:"\\@"; }
         </style>
       </head>
-      <body dir="rtl">
+      <body dir="${dir}">
         <table>
           <thead>
             <tr>
@@ -55,7 +58,7 @@ export default function ExportButtons({ data, filename, columns }: ExportButtons
         
         // Convert boolean to readable text
         if (typeof val === 'boolean') {
-          val = val ? "نعم" : "لا";
+          val = val ? t("yes") : t("no");
         }
         
         let strVal = String(val);
@@ -92,7 +95,7 @@ export default function ExportButtons({ data, filename, columns }: ExportButtons
         className="flex items-center gap-2 rounded-lg border border-stroke bg-white px-4 py-2 font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:hover:bg-dark-3 transition-colors"
       >
         <span>📥</span>
-        تصدير Excel
+        {t("exportExcel")}
       </button>
     </div>
   );

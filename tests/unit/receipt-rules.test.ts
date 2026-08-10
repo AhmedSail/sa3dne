@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  allowedActionsFor,
   buildReceiptUpdate,
   confirmSchema,
   type ConfirmInput,
@@ -212,6 +213,99 @@ describe("buildReceiptUpdate (UT-RCP rules)", () => {
       expect(decision.updates.confirmedAt).toEqual(CTX.now);
       expect(decision.updates.updatedAt).toEqual(CTX.now);
     }
+  });
+
+  it("UT-RCP-18: completing a partial receipt tops the line up to the planned quantity", () => {
+    const decision = buildReceiptUpdate(
+      { plannedQuantity: 100, status: "partially_received" },
+      {
+        action: "complete",
+        actualReceiptDate: "2026-03-05",
+        confirmationNotes: "the remaining 40 units arrived",
+      },
+      CTX,
+    );
+
+    expect(decision.ok).toBe(true);
+    if (!decision.ok) return;
+    expect(decision.updates.status).toBe("received");
+    expect(decision.updates.actualReceivedQuantity).toBe(100);
+    expect(decision.updates.actualReceiptDate).toEqual(new Date("2026-03-05"));
+    expect(decision.updates.rejectionReason).toBeNull();
+  });
+
+  it("UT-RCP-19: 'complete' is refused on a line that was never partially received", () => {
+    for (const status of ["pending", "not_received"]) {
+      const decision = buildReceiptUpdate(
+        { plannedQuantity: 100, status },
+        { action: "complete", actualReceiptDate: "2026-03-05" },
+        CTX,
+      );
+
+      expect(decision.ok).toBe(false);
+    }
+  });
+
+  it("UT-RCP-20: a partially received line accepts nothing but 'complete'", () => {
+    const rejected: ConfirmInput[] = [
+      { action: "full", actualReceiptDate: "2026-03-05" },
+      {
+        action: "partial",
+        actualReceivedQuantity: 80,
+        actualReceiptDate: "2026-03-05",
+        confirmationNotes: "more arrived",
+      },
+      { action: "not_received", confirmationNotes: "nothing arrived" },
+      { action: "reject", rejectionReason: "spoiled" },
+    ];
+
+    for (const action of rejected) {
+      const decision = buildReceiptUpdate(
+        { plannedQuantity: 100, status: "partially_received" },
+        action,
+        CTX,
+      );
+      expect(decision.ok).toBe(false);
+    }
+  });
+
+  it("UT-RCP-21: a settled line refuses every action", () => {
+    for (const status of ["received", "rejected"]) {
+      const decision = buildReceiptUpdate(
+        { plannedQuantity: 100, status },
+        { action: "full", actualReceiptDate: "2026-03-05" },
+        CTX,
+      );
+
+      expect(decision.ok).toBe(false);
+      if (decision.ok) continue;
+      expect(decision.error).toMatch(/already settled/i);
+    }
+  });
+
+  it("UT-RCP-22: allowedActionsFor mirrors the rules the builder enforces", () => {
+    expect(allowedActionsFor("pending")).toEqual([
+      "full",
+      "partial",
+      "not_received",
+      "reject",
+    ]);
+    expect(allowedActionsFor("not_received")).toEqual([
+      "full",
+      "partial",
+      "not_received",
+      "reject",
+    ]);
+    expect(allowedActionsFor("partially_received")).toEqual(["complete"]);
+    expect(allowedActionsFor("received")).toEqual([]);
+    expect(allowedActionsFor("rejected")).toEqual([]);
+    // A line with no status yet behaves like a pending one.
+    expect(allowedActionsFor(undefined)).toEqual([
+      "full",
+      "partial",
+      "not_received",
+      "reject",
+    ]);
   });
 
   it("UT-RCP-17: a partial receipt on a single-unit line is impossible", () => {

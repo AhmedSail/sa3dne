@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -35,19 +35,35 @@ export default function MyFamilyClient({
   members?: any[];
   requests?: any[];
 }) {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   const isAr = language === "ar";
   const router = useRouter();
 
-  const [form, setForm] = useState({
-    headName: familyData?.headName ?? "",
-    phone: familyData?.phone ?? "",
-    memberCount: familyData?.memberCount ?? 1,
-    occupation: familyData?.occupation ?? "",
-    notes: familyData?.notes ?? "",
-    campId: familyData?.campId ?? (camps[0]?.id ?? ""),
-  });
+  // The values as they are stored today. An update request only makes sense
+  // when the form actually differs from these.
+  const savedForm = useMemo(
+    () => ({
+      headName: familyData?.headName ?? "",
+      phone: familyData?.phone ?? "",
+      memberCount: familyData?.memberCount ?? 1,
+      occupation: familyData?.occupation ?? "",
+      notes: familyData?.notes ?? "",
+      campId: familyData?.campId ?? (camps[0]?.id ?? ""),
+    }),
+    [familyData, camps],
+  );
+
+  const [form, setForm] = useState(savedForm);
   const [saving, setSaving] = useState(false);
+
+  // Compare as trimmed strings: number inputs hand back strings, so a raw !==
+  // would flag an untouched member count as a change.
+  const hasChanges = useMemo(() => {
+    const normalize = (value: unknown) => String(value ?? "").trim();
+    return (Object.keys(savedForm) as (keyof typeof savedForm)[]).some(
+      (key) => normalize(form[key]) !== normalize(savedForm[key]),
+    );
+  }, [form, savedForm]);
   
   // Member Form State
   const [showMemberForm, setShowMemberForm] = useState(false);
@@ -68,6 +84,13 @@ export default function MyFamilyClient({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Nothing edited: don't create an empty request for a reviewer to process.
+    if (familyData && !hasChanges) {
+      toast.error(t("errNoChangesToSubmit"));
+      return;
+    }
+
     setSaving(true);
     try {
       if (!familyData) {
@@ -78,7 +101,7 @@ export default function MyFamilyClient({
           body: JSON.stringify({ ...form, nationalId }),
         });
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Error");
+        if (!res.ok) throw new Error(json.error || t("error"));
         toast.success(isAr ? "تم حفظ بيانات العائلة بنجاح" : "Family data saved successfully");
         router.refresh();
       } else {
@@ -88,7 +111,7 @@ export default function MyFamilyClient({
           type: "update_family_info",
           payload: { fields: form },
         });
-        if (res.error) throw new Error(res.error);
+        if (res.error) throw new Error(t(res.error));
         toast.success(isAr ? "تم إرسال طلب التحديث للمراجعة" : "Update request submitted for review");
       }
     } catch (err: any) {
@@ -111,7 +134,7 @@ export default function MyFamilyClient({
         type: "add_member",
         payload: { member: memberForm },
       });
-      if (res.error) throw new Error(res.error);
+      if (res.error) throw new Error(t(res.error));
       toast.success(isAr ? "تم إرسال طلب إضافة الفرد للمراجعة" : "Add member request submitted for review");
       
       setMemberForm({
@@ -146,7 +169,7 @@ export default function MyFamilyClient({
         type: "remove_member",
         payload: { memberId: id, memberName: memberName },
       });
-      if (res.error) throw new Error(res.error);
+      if (res.error) throw new Error(t(res.error));
       toast.success(isAr ? "تم إرسال طلب الحذف للمراجعة" : "Deletion request submitted for review");
     } catch (err: any) {
       toast.error(err.message);
@@ -263,7 +286,7 @@ export default function MyFamilyClient({
                 required
                 value={form.campId}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-dark-2 dark:text-white"
               >
                 {camps.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -286,11 +309,16 @@ export default function MyFamilyClient({
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-3">
+            {familyData && !hasChanges && (
+              <span className="text-xs text-dark-4 dark:text-dark-6">
+                {t("noChangesHint")}
+              </span>
+            )}
             <button
               type="submit"
-              disabled={saving}
-              className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 disabled:opacity-60"
+              disabled={saving || (!!familyData && !hasChanges)}
+              className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
             >
               {saving
                 ? isAr ? "جاري الإرسال..." : "Sending..."
@@ -302,7 +330,7 @@ export default function MyFamilyClient({
         </form>
       </div>
       
-      {/* أفراد العائلة */}
+      {/* Family members */}
       {familyData && (
         <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -485,7 +513,7 @@ export default function MyFamilyClient({
         </div>
       )}
 
-      {/* طلبات التحديث */}
+      {/* Update requests */}
       {familyData && requests && requests.length > 0 && (
         <div className="rounded-xl border border-stroke bg-white p-6 shadow-default dark:border-dark-3 dark:bg-gray-dark mt-6">
           <h2 className="mb-4 text-xl font-bold text-dark dark:text-white">
@@ -523,7 +551,7 @@ export default function MyFamilyClient({
           </div>
         </div>
       )}
-      {/* نافذة تأكيد الحذف */}
+      {/* Delete confirmation dialog */}
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg dark:bg-gray-dark border border-stroke dark:border-dark-3">

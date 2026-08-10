@@ -25,6 +25,12 @@ export default async function ContributionDetailPage({
     redirect("/auth/sign-in");
   }
 
+  // A Camp Manager never browses the contributions register; receipts are
+  // confirmed from "Incoming Aid" instead.
+  if (session.user.role === "camp_manager") {
+    redirect("/dashboard/incoming-aid");
+  }
+
   const { id } = await params;
 
   const [contribution] = await db

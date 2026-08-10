@@ -130,6 +130,8 @@ function StepRow({ num, title, desc, active, delay, inView }: {
 
 /* ─── 3D Isometric Illustration ─── */
 function IsometricIllustration({ inView }: { inView: boolean }) {
+  const { t } = useLanguage();
+
   return (
     <div className={`relative flex items-center justify-center transition-all duration-1000 ${inView ? "opacity-100 scale-100" : "opacity-0 scale-90"}`}>
       <div className="relative h-[380px] w-[380px]" style={{ perspective: "1200px" }}>
@@ -183,7 +185,7 @@ function IsometricIllustration({ inView }: { inView: boolean }) {
         >
           <div className="flex items-center gap-2">
             <div className="h-2.5 w-2.5 rounded-full bg-[#10b981]" />
-            <span className="text-xs font-bold text-[#10b981]">تم الاستلام ✓</span>
+            <span className="text-xs font-bold text-[#10b981]">{t("mockupBadgeReceived")}</span>
           </div>
         </div>
 
@@ -194,7 +196,7 @@ function IsometricIllustration({ inView }: { inView: boolean }) {
         >
           <div className="flex items-center gap-2">
             <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-            <span className="text-xs font-bold text-blue-500">128 عائلة مستفيدة</span>
+            <span className="text-xs font-bold text-blue-500">{t("mockupBadgeFamilies")}</span>
           </div>
         </div>
       </div>

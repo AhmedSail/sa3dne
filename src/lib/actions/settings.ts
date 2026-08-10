@@ -37,12 +37,12 @@ export async function updateContactSettings(data: z.infer<typeof contactSettings
   });
 
   if (!session || (session.user as any).role !== "admin") {
-    return { error: "غير مصرح لك بتحديث الإعدادات" };
+    return { error: "errNotAllowedToUpdateSettings" };
   }
 
   const parsed = contactSettingsSchema.safeParse(data);
   if (!parsed.success) {
-    return { error: "بيانات الإعدادات غير صالحة" };
+    return { error: "errInvalidSettingsData" };
   }
 
   try {
@@ -76,6 +76,6 @@ export async function updateContactSettings(data: z.infer<typeof contactSettings
     return { success: true };
   } catch (error) {
     console.error("Error updating contact settings:", error);
-    return { error: "حدث خطأ أثناء حفظ الإعدادات" };
+    return { error: "settingsSaveFailed" };
   }
 }

@@ -78,13 +78,13 @@ export default function ComplaintsClient({
             <div className="flex justify-end print:hidden">
               <ExportButtons 
                 data={complaints}
-                filename="قائمة_الشكاوى"
+                filename={t("complaintsExportFilename")}
                 columns={[
-                  { key: "trackingNumber", label: "رقم التتبع" },
-                  { key: "beneficiaryName", label: "مقدم الطلب" },
-                  { key: "type", label: "النوع" },
-                  { key: "createdAt", label: "تاريخ التقديم" },
-                  { key: "status", label: "الحالة" }
+                  { key: "trackingNumber", label: t("trackingNumber") },
+                  { key: "beneficiaryName", label: t("applicant") },
+                  { key: "type", label: t("type") },
+                  { key: "createdAt", label: t("submissionDate") },
+                  { key: "status", label: t("status") }
                 ]}
               />
             </div>

@@ -1,4 +1,4 @@
-import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
+import TranslatedBreadcrumb from "@/components/Breadcrumbs/TranslatedBreadcrumb";
 import { Metadata } from "next";
 import { getContactSettings } from "@/lib/actions/settings";
 import { ContactSettingsForm } from "./_components/contact-settings-form";
@@ -12,7 +12,7 @@ export default async function ContactSettingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-270">
-      <Breadcrumb pageName="إعدادات التواصل" />
+      <TranslatedBreadcrumb pageNameKey="contactSettings" />
 
       <div className="grid grid-cols-1 gap-8">
         <div className="col-span-1">

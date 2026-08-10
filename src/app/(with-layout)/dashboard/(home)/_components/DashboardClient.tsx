@@ -58,38 +58,50 @@ type DashboardData = {
   recentFamilies: RecentFamily[];
 };
 
-function StatCard({
-  label,
-  value,
-  color,
-  icon,
-  href,
-}: {
+type StatCardProps = {
   label: string;
   value: number | string;
   color: string;
   icon: React.ReactNode;
   href?: string;
-}) {
+};
+
+/**
+ * Compact overview tile. The layout is deliberately tight — icon above the
+ * figure rather than beside it — so a full set of tiles fits on one row of the
+ * dashboard instead of spilling onto a second, half-empty line.
+ */
+function StatCard({ label, value, color, icon, href }: StatCardProps) {
   const inner = (
     <div
       className={cn(
-        "rounded-xl border border-stroke bg-white p-5 shadow-default dark:border-dark-3 dark:bg-gray-dark flex items-center justify-between transition-transform hover:-translate-y-0.5",
-        href && "cursor-pointer"
+        "flex h-full flex-col gap-2 rounded-xl border border-stroke bg-white p-3.5 shadow-default transition-transform hover:-translate-y-0.5 dark:border-dark-3 dark:bg-gray-dark",
+        href && "cursor-pointer",
       )}
     >
-      <div>
-        <p className="text-xs font-semibold text-dark-4 dark:text-dark-6 uppercase tracking-wide">
-          {label}
-        </p>
-        <p className="mt-2 text-3xl font-bold text-dark dark:text-white">{value}</p>
-      </div>
-      <div className={cn("flex h-12 w-12 items-center justify-center rounded-full", color)}>
+      <div
+        className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+          color,
+        )}
+      >
         {icon}
       </div>
+      <p className="text-2xl font-bold leading-none text-dark dark:text-white">
+        {value}
+      </p>
+      <p className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-dark-4 dark:text-dark-6">
+        {label}
+      </p>
     </div>
   );
-  return href ? <Link href={href}>{inner}</Link> : inner;
+  return href ? (
+    <Link href={href} className="block h-full">
+      {inner}
+    </Link>
+  ) : (
+    inner
+  );
 }
 
 export default function DashboardClient({
@@ -147,107 +159,126 @@ export default function DashboardClient({
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Overview Cards — single adaptive grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {/* Camps — always visible */}
-        <StatCard
-          label={t("camps")}
-          value={data.totalCamps}
-          color="bg-primary/10 text-primary"
-          href="/dashboard/camps"
-          icon={
-            <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
-              <path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V8h14v10zM12 10.5c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5z" />
-            </svg>
-          }
-        />
-
-        {/* Families & Individuals */}
-        {canReadFamilies && (
-          <>
-            <StatCard
-              label={t("families")}
-              value={data.totalFamilies}
-              color="bg-green-500/10 text-green-500"
-              href="/dashboard/families"
-              icon={
-                <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
-                  <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-                </svg>
-              }
-            />
-            <StatCard
-              label={isAr ? "إجمالي الأفراد" : "Total Individuals"}
-              value={data.totalIndividuals}
-              color="bg-cyan-500/10 text-cyan-500"
-              icon={
-                <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                </svg>
-              }
-            />
-          </>
-        )}
-
-        {/* Providers */}
-        <StatCard
-          label={t("providers")}
-          value={data.totalProviders}
-          color="bg-amber-500/10 text-amber-500"
-          href="/dashboard/providers"
-          icon={
-            <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.25z" />
-            </svg>
-          }
-        />
-
-        {/* Complaints */}
-        {canReadComplaints && (
-          <>
-            <StatCard
-              label={t("complaints")}
-              value={data.totalComplaints}
-              color="bg-purple-500/10 text-purple-500"
-              href="/dashboard/complaints"
-              icon={
-                <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
-                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z" />
-                </svg>
-              }
-            />
-            <StatCard
-              label={isAr ? "شكاوى معلقة" : "Pending Complaints"}
-              value={data.pendingComplaints}
-              color="bg-orange-500/10 text-orange-500"
-              href="/dashboard/complaints?status=pending"
-              icon={
-                <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-                </svg>
-              }
-            />
-          </>
-        )}
-
-        {/* Contributions */}
-        {canReadContributions && (
-          <StatCard
-            label={t("contributions")}
-            value={data.totalContributions}
-            color="bg-teal-500/10 text-teal-500"
-            href="/dashboard/contributions"
-            icon={
-              <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
+  const overviewCards: (StatCardProps & { key: string })[] = [
+    {
+      key: "camps",
+      label: t("camps"),
+      value: data.totalCamps,
+      color: "bg-primary/10 text-primary",
+      href: "/dashboard/camps",
+      icon: (
+        <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+          <path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V8h14v10zM12 10.5c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5z" />
+        </svg>
+      ),
+    },
+    ...(canReadFamilies
+      ? [
+          {
+            key: "families",
+            label: t("families"),
+            value: data.totalFamilies,
+            color: "bg-green-500/10 text-green-500",
+            href: "/dashboard/families",
+            icon: (
+              <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+              </svg>
+            ),
+          },
+          {
+            key: "individuals",
+            label: isAr ? "إجمالي الأفراد" : "Total Individuals",
+            value: data.totalIndividuals,
+            color: "bg-cyan-500/10 text-cyan-500",
+            icon: (
+              <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              </svg>
+            ),
+          },
+        ]
+      : []),
+    {
+      key: "providers",
+      label: t("providers"),
+      value: data.totalProviders,
+      color: "bg-amber-500/10 text-amber-500",
+      href: "/dashboard/providers",
+      icon: (
+        <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.25z" />
+        </svg>
+      ),
+    },
+    ...(canReadComplaints
+      ? [
+          {
+            key: "complaints",
+            label: t("complaints"),
+            value: data.totalComplaints,
+            color: "bg-purple-500/10 text-purple-500",
+            href: "/dashboard/complaints",
+            icon: (
+              <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z" />
+              </svg>
+            ),
+          },
+          {
+            key: "pendingComplaints",
+            label: isAr ? "شكاوى معلقة" : "Pending Complaints",
+            value: data.pendingComplaints,
+            color: "bg-orange-500/10 text-orange-500",
+            href: "/dashboard/complaints?status=pending",
+            icon: (
+              <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+              </svg>
+            ),
+          },
+        ]
+      : []),
+    ...(canReadContributions
+      ? [
+          {
+            key: "contributions",
+            label: t("contributions"),
+            value: data.totalContributions,
+            color: "bg-teal-500/10 text-teal-500",
+            href: "/dashboard/contributions",
+            icon: (
+              <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
                 <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z" />
               </svg>
-            }
-          />
-        )}
-      </div>
+            ),
+          },
+        ]
+      : []),
+  ];
 
+  return (
+    <div className="space-y-6">
+      {/*
+        Overview tiles. Which tiles appear depends on the role, so the column
+        count follows how many there actually are (--stat-cols) rather than a
+        fixed four: the row fills exactly once, instead of spilling a couple of
+        tiles onto a second, half-empty line. Small sets reach that point at
+        `sm`; larger ones wait for `xl`, where there is room to line them up.
+      */}
+      <div
+        className={cn(
+          "grid grid-cols-2 gap-3",
+          overviewCards.length <= 4
+            ? "sm:[grid-template-columns:repeat(var(--stat-cols),minmax(0,1fr))]"
+            : "md:grid-cols-4 xl:[grid-template-columns:repeat(var(--stat-cols),minmax(0,1fr))]",
+        )}
+        style={{ "--stat-cols": overviewCards.length } as React.CSSProperties}
+      >
+        {overviewCards.map(({ key, ...card }) => (
+          <StatCard key={key} {...card} />
+        ))}
+      </div>
 
       {/* 3. Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">

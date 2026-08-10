@@ -13,6 +13,7 @@ import { z } from "zod";
  * trusting the client):
  *  - full:         actual = planned (derived on the server), receipt date required.
  *  - partial:      0 < actual < planned, receipt date + notes required.
+ *  - complete:     tops a partially received line up to the planned quantity.
  *  - not_received: actual is forced to 0, notes required.
  *  - reject:       rejection reason required, quantity cleared.
  */
@@ -31,6 +32,11 @@ export const confirmSchema = z.discriminatedUnion("action", [
     confirmationNotes: z.string().min(1, "Notes are required for partial receipt"),
   }),
   z.object({
+    action: z.literal("complete"),
+    actualReceiptDate: z.string().min(1, "Receipt date is required"),
+    confirmationNotes: z.string().optional().nullable(),
+  }),
+  z.object({
     action: z.literal("not_received"),
     confirmationNotes: z.string().min(1, "Notes are required when not received"),
   }),
@@ -42,9 +48,43 @@ export const confirmSchema = z.discriminatedUnion("action", [
 
 export type ConfirmInput = z.infer<typeof confirmSchema>;
 
+export type LineStatus =
+  | "pending"
+  | "received"
+  | "partially_received"
+  | "not_received"
+  | "rejected";
+
+/**
+ * Statuses that close a line for good. "Received" and "Rejected" are the two
+ * final outcomes of the receipt workflow, so they carry no further actions.
+ */
+export const TERMINAL_LINE_STATUSES: readonly LineStatus[] = [
+  "received",
+  "rejected",
+];
+
+/**
+ * Which confirmation actions a line accepts, given the status it is in now.
+ *
+ * A partially received line has already been confirmed once; the only thing
+ * left to record is that the remaining quantity arrived, so "complete" is its
+ * single action. Terminal statuses accept nothing.
+ */
+export function allowedActionsFor(
+  status: string | undefined,
+): ConfirmInput["action"][] {
+  if (status && TERMINAL_LINE_STATUSES.includes(status as LineStatus)) return [];
+  if (status === "partially_received") return ["complete"];
+  // 'pending' and 'not_received' are still open: aid may yet turn up.
+  return ["full", "partial", "not_received", "reject"];
+}
+
 /** The only part of a contribution line the receipt rules need to decide. */
 export type ReceiptLineSnapshot = {
   plannedQuantity: number;
+  /** Current line status; treated as 'pending' when absent. */
+  status?: string | null;
 };
 
 export type ReceiptUpdate = {
@@ -75,6 +115,24 @@ export function buildReceiptUpdate(
   data: ConfirmInput,
   ctx: { userId: string; now: Date },
 ): ReceiptDecision {
+  const currentStatus = line.status ?? "pending";
+
+  // Guard the transition before anything else: a client that keeps a stale page
+  // open must not be able to re-confirm a line that is already settled.
+  const allowed = allowedActionsFor(currentStatus);
+  if (allowed.length === 0) {
+    return {
+      ok: false,
+      error: "This line is already settled and cannot be confirmed again",
+    };
+  }
+  if (!allowed.includes(data.action)) {
+    return {
+      ok: false,
+      error: `Action '${data.action}' is not allowed for a line in status '${currentStatus}'`,
+    };
+  }
+
   const base = {
     confirmedById: ctx.userId,
     confirmedAt: ctx.now,
@@ -114,6 +172,21 @@ export function buildReceiptUpdate(
         },
       };
     }
+
+    case "complete":
+      // Closing out a partial receipt: the outstanding balance arrived, so the
+      // line ends up fully received at the planned quantity.
+      return {
+        ok: true,
+        updates: {
+          ...base,
+          status: "received",
+          actualReceivedQuantity: line.plannedQuantity,
+          actualReceiptDate: new Date(data.actualReceiptDate),
+          confirmationNotes: data.confirmationNotes?.trim() || null,
+          rejectionReason: null,
+        },
+      };
 
     case "not_received":
       return {

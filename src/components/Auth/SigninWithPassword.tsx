@@ -122,7 +122,7 @@ export default function SigninWithPassword() {
             required
             value={data.email}
             onChange={handleChange}
-            placeholder="123456789 أو example@sa3dne.com"
+            placeholder={t("emailPlaceholder")}
             className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none transition-all focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-[#10b981]"
           />
         </div>
@@ -154,7 +154,7 @@ export default function SigninWithPassword() {
           {loading ? (
             <>
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-t-transparent" />
-              جاري تسجيل الدخول...
+              {t("signingIn")}
             </>
           ) : (
             t("signInButton")

@@ -1,6 +1,6 @@
 "use client";
 
-import { authClient } from "@/lib/auth/auth-client";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ type UserData = {
 
 export default function EditUserForm({ user, camps }: { user: UserData; camps: {id: string, name: string}[] }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: user.name,
@@ -63,11 +64,11 @@ export default function EditUserForm({ user, camps }: { user: UserData; camps: {
     setSaving(false);
 
     if (failed) {
-      toast.error("فشل في تحديث بيانات المستخدم");
+      toast.error(t("updateUserFailed"));
       return;
     }
 
-    toast.success("تم تحديث بيانات المستخدم بنجاح");
+    toast.success(t("userUpdated"));
     router.push("/dashboard/users");
     router.refresh();
   };
@@ -76,10 +77,10 @@ export default function EditUserForm({ user, camps }: { user: UserData; camps: {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-dark dark:text-white">
-          تعديل المستخدم
+          {t("editUser")}
         </h1>
         <p className="text-sm text-dark-4 dark:text-dark-6">
-          تعديل بيانات المستخدم
+          {t("editUserSubtitle")}
         </p>
       </div>
 
@@ -87,7 +88,7 @@ export default function EditUserForm({ user, camps }: { user: UserData; camps: {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-              الاسم الكامل
+              {t("nameLabel")}
             </label>
             <input
               type="text"
@@ -101,7 +102,7 @@ export default function EditUserForm({ user, camps }: { user: UserData; camps: {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-              رقم الهاتف (اختياري)
+              {t("phoneOptional")}
             </label>
             <input
               type="tel"
@@ -115,7 +116,7 @@ export default function EditUserForm({ user, camps }: { user: UserData; camps: {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-              الدور (الصلاحية)
+              {t("userRole")}
             </label>
             <select
               name="role"
@@ -123,17 +124,17 @@ export default function EditUserForm({ user, camps }: { user: UserData; camps: {
               onChange={handleChange}
               className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             >
-              <option value="user">مستخدم عادي</option>
-              <option value="beneficiary">مستفيد (عائلة)</option>
-              <option value="camp_manager">مدير مخيم</option>
-              <option value="admin">مشرف نظام</option>
+              <option value="user">{t("roleUser")}</option>
+              <option value="beneficiary">{t("roleBeneficiary")}</option>
+              <option value="camp_manager">{t("roleCampManager")}</option>
+              <option value="admin">{t("roleAdmin")}</option>
             </select>
           </div>
           
           {form.role === "camp_manager" && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
-                تعيين المخيم التابع له
+                {t("assignCampToUser")}
               </label>
               <select
                 name="campId"
@@ -141,7 +142,7 @@ export default function EditUserForm({ user, camps }: { user: UserData; camps: {
                 onChange={handleChange}
                 className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
               >
-                <option value="">-- اختر المخيم --</option>
+                <option value="">{t("selectCampPlaceholder")}</option>
                 {camps.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -155,13 +156,13 @@ export default function EditUserForm({ user, camps }: { user: UserData; camps: {
               disabled={saving}
               className="flex-1 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-opacity-90 disabled:opacity-70"
             >
-              {saving ? "جاري الحفظ..." : "حفظ التغييرات"}
+              {saving ? t("saving") : t("saveChanges")}
             </button>
             <Link
               href="/dashboard/users"
               className="flex-1 rounded-lg border border-stroke px-5 py-2.5 text-center text-sm font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
             >
-              إلغاء
+              {t("cancel")}
             </Link>
           </div>
         </form>

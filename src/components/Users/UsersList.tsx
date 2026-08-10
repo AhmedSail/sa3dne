@@ -1,6 +1,7 @@
 "use client";
 
 import { banUserAction, unbanUserAction } from "@/lib/actions/users";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,6 +18,38 @@ type User = {
   createdAt: Date;
 };
 
+const ROLE_STYLES: Record<string, string> = {
+  admin: "bg-primary/10 text-primary",
+  camp_manager:
+    "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
+  org_representative:
+    "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400",
+  independent_initiator:
+    "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400",
+  beneficiary:
+    "bg-teal-50 text-teal-600 dark:bg-teal-900/20 dark:text-teal-400",
+  user: "bg-gray-2 text-dark-4 dark:bg-dark-2 dark:text-dark-6",
+};
+
+const ROLE_LABEL_KEY: Record<string, string> = {
+  admin: "roleAdmin",
+  camp_manager: "roleCampManager",
+  org_representative: "roleOrgRepresentative",
+  independent_initiator: "roleIndependentInitiator",
+  beneficiary: "roleBeneficiary",
+  user: "roleUser",
+};
+
+/** Roles offered in the filter dropdown, in display order. */
+const FILTERABLE_ROLES = [
+  "admin",
+  "camp_manager",
+  "org_representative",
+  "independent_initiator",
+  "beneficiary",
+  "user",
+] as const;
+
 export default function UsersList({
   initialUsers,
   currentUserId,
@@ -25,14 +58,15 @@ export default function UsersList({
   currentUserId?: string;
 }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  
+
   const ITEMS_PER_PAGE = 10;
-  
+
   const filteredUsers = useMemo(() => {
     return initialUsers.filter((user) => {
       const q = searchQuery.toLowerCase();
@@ -40,9 +74,9 @@ export default function UsersList({
         user.name?.toLowerCase().includes(q) ||
         user.email?.toLowerCase().includes(q) ||
         user.phone?.includes(q);
-        
+
       const matchesRole = filterRole === "all" || user.role === filterRole;
-      
+
       const matchesStatus =
         filterStatus === "all" ||
         (filterStatus === "active" && !user.banned) ||
@@ -58,6 +92,9 @@ export default function UsersList({
     currentPage * ITEMS_PER_PAGE
   );
 
+  const roleLabel = (role: string) =>
+    t((ROLE_LABEL_KEY[role] ?? "roleUser") as any);
+
   async function handleBanToggle(user: User) {
     setLoadingId(user.id);
     if (!user.banned) {
@@ -65,49 +102,49 @@ export default function UsersList({
         (u) => u.role === "admin" && !u.banned && u.id !== user.id,
       );
       if (user.role === "admin" && activeAdmins.length === 0) {
-        toast.error("لا يمكن حظر آخر مشرف نشط في النظام");
+        toast.error(t("cannotBanLastAdmin"));
         setLoadingId(null);
         return;
       }
       if (user.id === currentUserId) {
-        toast.error("لا يمكنك حظر حسابك الشخصي");
+        toast.error(t("cannotBanSelf"));
         setLoadingId(null);
         return;
       }
       const result = await banUserAction(user.id);
-      if (result.error) toast.error(result.error);
-      else toast.success("تم حظر المستخدم بنجاح");
+      if (result.error) toast.error(t(result.error));
+      else toast.success(t("userBanned"));
     } else {
       const result = await unbanUserAction(user.id);
-      if (result.error) toast.error(result.error);
-      else toast.success("تم رفع الحظر عن المستخدم");
+      if (result.error) toast.error(t(result.error));
+      else toast.success(t("userUnbanned"));
     }
     setLoadingId(null);
     router.refresh();
   }
 
   return (
-    <div dir="rtl">
+    <div>
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-dark dark:text-white">
-            إدارة المستخدمين
+            {t("users")}
           </h1>
           <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
-            إنشاء وتعديل وإدارة حسابات المستخدمين
+            {t("usersListSubtitle")}
           </p>
         </div>
         <div className="flex gap-3">
-          <ExportButtons 
+          <ExportButtons
             data={filteredUsers}
-            filename="قائمة_المستخدمين"
+            filename={t("usersExportFilename")}
             columns={[
-              { key: "name", label: "الاسم" },
-              { key: "email", label: "البريد الإلكتروني" },
-              { key: "phone", label: "رقم الهاتف" },
-              { key: "role", label: "الدور" },
-              { key: "banned", label: "محظور" }
+              { key: "name", label: t("nameLabel") },
+              { key: "email", label: t("emailAddress") },
+              { key: "phone", label: t("phone") },
+              { key: "role", label: t("userRole") },
+              { key: "banned", label: t("bannedLabel") }
             ]}
           />
           <Link
@@ -115,7 +152,7 @@ export default function UsersList({
             className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-opacity-90 print:hidden"
           >
             <span className="text-lg leading-none">+</span>
-            إضافة مستخدم
+            {t("addUser")}
           </Link>
         </div>
       </div>
@@ -125,7 +162,7 @@ export default function UsersList({
         <div className="relative">
           <input
             type="text"
-            placeholder="البحث بالاسم، الإيميل، رقم الهاتف..."
+            placeholder={t("searchUsersPlaceholder")}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -143,13 +180,12 @@ export default function UsersList({
             }}
             className="w-full rounded-lg border border-stroke bg-white px-4 py-2.5 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
           >
-            <option value="all">كل الأدوار</option>
-            <option value="admin">مشرف النظام</option>
-            <option value="camp_manager">مدير مخيم</option>
-            <option value="org_representative">ممثل منظمة</option>
-            <option value="independent_initiator">مبادر مستقل</option>
-            <option value="beneficiary">مستفيد</option>
-            <option value="user">مستخدم عادي</option>
+            <option value="all">{t("allRoles")}</option>
+            {FILTERABLE_ROLES.map((role) => (
+              <option key={role} value={role}>
+                {roleLabel(role)}
+              </option>
+            ))}
           </select>
         </div>
         <div>
@@ -161,9 +197,9 @@ export default function UsersList({
             }}
             className="w-full rounded-lg border border-stroke bg-white px-4 py-2.5 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
           >
-            <option value="all">كل الحالات</option>
-            <option value="active">نشط</option>
-            <option value="banned">محظور</option>
+            <option value="all">{t("allStatuses")}</option>
+            <option value="active">{t("active")}</option>
+            <option value="banned">{t("bannedLabel")}</option>
           </select>
         </div>
       </div>
@@ -174,16 +210,21 @@ export default function UsersList({
           <table className="w-full table-auto text-sm">
             <thead>
               <tr className="border-b border-stroke bg-gray-2 dark:border-dark-3 dark:bg-dark-2">
-                {["الاسم", "البريد الإلكتروني", "رقم الهاتف", "الدور", "الحالة", "الإجراءات"].map(
-                  (col) => (
-                    <th
-                      key={col}
-                      className="whitespace-nowrap px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-dark-4 dark:text-dark-6"
-                    >
-                      {col}
-                    </th>
-                  ),
-                )}
+                {[
+                  t("nameLabel"),
+                  t("emailAddress"),
+                  t("phone"),
+                  t("userRole"),
+                  t("status"),
+                  t("actions"),
+                ].map((col) => (
+                  <th
+                    key={col}
+                    className="whitespace-nowrap px-4 py-3.5 text-start text-xs font-semibold uppercase tracking-wide text-dark-4 dark:text-dark-6"
+                  >
+                    {col}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-stroke dark:divide-dark-3">
@@ -193,7 +234,7 @@ export default function UsersList({
                     colSpan={6}
                     className="px-4 py-12 text-center text-sm text-dark-4 dark:text-dark-6"
                   >
-                    لا يوجد مستخدمون بعد
+                    {t("noUsersYet")}
                   </td>
                 </tr>
               ) : (
@@ -230,32 +271,13 @@ export default function UsersList({
 
                     {/* Role */}
                     <td className="whitespace-nowrap px-4 py-3.5">
-                      {(() => {
-                        const getRoleDetails = (role: string) => {
-                          switch (role) {
-                            case "admin":
-                              return { label: "مشرف النظام", class: "bg-primary/10 text-primary" };
-                            case "camp_manager":
-                              return { label: "مدير مخيم", class: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400" };
-                            case "org_representative":
-                              return { label: "ممثل منظمة", class: "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400" };
-                            case "independent_initiator":
-                              return { label: "مبادر مستقل", class: "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400" };
-                            case "beneficiary":
-                              return { label: "مستفيد", class: "bg-teal-50 text-teal-600 dark:bg-teal-900/20 dark:text-teal-400" };
-                            default:
-                              return { label: "مستخدم عادي", class: "bg-gray-2 text-dark-4 dark:bg-dark-2 dark:text-dark-6" };
-                          }
-                        };
-                        const roleDetails = getRoleDetails(user.role);
-                        return (
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${roleDetails.class}`}
-                          >
-                            {roleDetails.label}
-                          </span>
-                        );
-                      })()}
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          ROLE_STYLES[user.role] ?? ROLE_STYLES.user
+                        }`}
+                      >
+                        {roleLabel(user.role)}
+                      </span>
                     </td>
 
                     {/* Status */}
@@ -270,7 +292,7 @@ export default function UsersList({
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${user.banned ? "bg-red-500" : "bg-green-500"}`}
                         />
-                        {user.banned ? "محظور" : "نشط"}
+                        {user.banned ? t("bannedLabel") : t("active")}
                       </span>
                     </td>
 
@@ -281,7 +303,7 @@ export default function UsersList({
                           href={`/dashboard/users/${user.id}/edit`}
                           className="text-xs font-medium text-primary hover:underline"
                         >
-                          تعديل
+                          {t("edit")}
                         </Link>
                         <button
                           onClick={() => handleBanToggle(user)}
@@ -295,8 +317,8 @@ export default function UsersList({
                           {loadingId === user.id
                             ? "..."
                             : user.banned
-                              ? "رفع الحظر"
-                              : "حظر"}
+                              ? t("unbanUser")
+                              : t("banUser")}
                         </button>
                       </div>
                     </td>
@@ -311,12 +333,12 @@ export default function UsersList({
         {filteredUsers.length > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between border-t border-stroke px-4 py-3 dark:border-dark-3 gap-4">
             <p className="text-xs text-dark-4 dark:text-dark-6">
-              إجمالي المستخدمين:{" "}
+              {t("totalUsers")}{" "}
               <span className="font-semibold text-dark dark:text-white">
                 {filteredUsers.length}
               </span>
             </p>
-            
+
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
                 <button
@@ -324,17 +346,19 @@ export default function UsersList({
                   disabled={currentPage === 1}
                   className="rounded px-2 py-1 text-xs font-medium bg-gray-2 text-dark-4 disabled:opacity-50 dark:bg-dark-2 dark:text-dark-6 transition hover:bg-gray-3 dark:hover:bg-dark-3"
                 >
-                  السابق
+                  {t("previous")}
                 </button>
                 <span className="text-xs font-medium text-dark-4 dark:text-dark-6">
-                  {currentPage} من {totalPages}
+                  {t("pageXofY")
+                    .replace("{current}", String(currentPage))
+                    .replace("{total}", String(totalPages))}
                 </span>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                   className="rounded px-2 py-1 text-xs font-medium bg-gray-2 text-dark-4 disabled:opacity-50 dark:bg-dark-2 dark:text-dark-6 transition hover:bg-gray-3 dark:hover:bg-dark-3"
                 >
-                  التالي
+                  {t("next")}
                 </button>
               </div>
             )}

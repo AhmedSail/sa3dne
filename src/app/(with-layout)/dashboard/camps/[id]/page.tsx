@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { camp, campAssignment, user } from "@/db/schema";
 import CampDetails from "@/components/Camps/CampDetails";
 import { auth } from "@/lib/auth";
+import { getAssignedCampIds } from "@/lib/contributions/access";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
@@ -22,6 +23,15 @@ export default async function CampDetailsPage({
   }
 
   const { id } = await params;
+
+  // Server-side scope: a Camp Manager may only open a camp they are assigned to.
+  if (session.user.role === "camp_manager") {
+    const assigned = await getAssignedCampIds(session.user.id);
+    if (!assigned.includes(id)) {
+      redirect("/dashboard/camps");
+    }
+  }
+
   const campData = await db.select().from(camp).where(eq(camp.id, id)).limit(1);
 
   if (campData.length === 0) {

@@ -393,9 +393,44 @@
     @apply bg-gray-2 text-dark-5 dark:bg-[#020D1A] dark:text-dark-6;
   }
 
-  /* Force dark mode styles on native select dropdown options */
-  .dark option {
-    @apply bg-gray-dark text-white;
+  /*
+    Tell the browser which palette to paint native controls with. Without this,
+    the dropdown popup of a <select>, scrollbars and date pickers keep their
+    light-mode chrome while the page is dark.
+  */
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  /*
+    Native <select> fields.
+
+    The closed control and the dropdown popup are painted by the browser from
+    these colours, and the popup does not inherit the page background. A field
+    left on `bg-transparent` therefore opens a default-white popup — invisible
+    against the white text dark mode uses. Both the control and every option
+    are given an explicit, opaque pair of colours in each theme so the contents
+    read correctly whichever theme is active.
+  */
+  select {
+    @apply text-dark dark:text-white;
+  }
+
+  select option {
+    @apply bg-white text-dark;
+  }
+
+  .dark select option {
+    @apply bg-dark-2 text-white;
+  }
+
+  /* Placeholder entries stay muted without dropping out of view. */
+  select option:disabled {
+    @apply text-dark-5 dark:text-dark-6;
   }
 }
 

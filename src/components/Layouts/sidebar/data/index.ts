@@ -52,11 +52,13 @@ export const NAV_DATA = [
         items: [],
       },
       {
+        // Admin-only: a Camp Manager works from "Incoming Aid" instead, which is
+        // already scoped to the camps they are responsible for.
         title: "Contributions",
         langKey: "contributions",
         icon: Icons.FourCircle,
         url: "/dashboard/contributions",
-        roles: ["admin", "camp_manager"],
+        roles: ["admin"],
         items: [],
       },
       {

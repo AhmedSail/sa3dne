@@ -19,17 +19,20 @@ type Camp = {
 export default function CampsList({
   initialCamps,
   isAdmin,
+  unassigned = false,
 }: {
   initialCamps: Camp[];
   isAdmin: boolean;
+  /** True when a Camp Manager has no camps assigned to them yet. */
+  unassigned?: boolean;
 }) {
   const router = useRouter();
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [camps, setCamps] = useState<Camp[]>(initialCamps);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   async function handleDeactivate(id: string) {
-    if (!confirm(language === "ar" ? "هل أنت متأكد من تعطيل/إغلاق هذا المخيم؟" : "Are you sure you want to close this camp?")) {
+    if (!confirm(t("closeCampConfirm"))) {
       return;
     }
     setLoadingId(id);
@@ -44,6 +47,38 @@ export default function CampsList({
           prev.map((c) =>
             c.id === id
               ? { ...c, status: "inactive", operationalStatus: "closed" }
+              : c,
+          ),
+        );
+        router.refresh();
+      } else {
+        toast.error(t("error"));
+      }
+    } catch (err) {
+      toast.error(t("error"));
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  /** Admin-only: bring a closed camp back into operation. */
+  async function handleReopen(id: string) {
+    if (!confirm(t("reopenCampConfirm"))) {
+      return;
+    }
+    setLoadingId(id);
+    try {
+      const res = await fetch(`/api/camps/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "active", operationalStatus: "active" }),
+      });
+      if (res.ok) {
+        toast.success(t("campReopened"));
+        setCamps((prev) =>
+          prev.map((c) =>
+            c.id === id
+              ? { ...c, status: "active", operationalStatus: "active" }
               : c,
           ),
         );
@@ -92,9 +127,7 @@ export default function CampsList({
             {t("campsList")}
           </h1>
           <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
-            {language === "ar"
-              ? "عرض وإدارة المخيمات وتعيين المدراء"
-              : "View and manage IDP camps and assign managers"}
+            {t("campsListSubtitle")}
           </p>
         </div>
         {isAdmin && (
@@ -141,7 +174,7 @@ export default function CampsList({
                     colSpan={6}
                     className="px-4 py-12 text-center text-sm text-dark-4 dark:text-dark-6"
                   >
-                    {language === "ar" ? "لا يوجد مخيمات بعد" : "No camps registered yet"}
+                    {unassigned ? t("noAssignedCamps") : t("noCampsYet")}
                   </td>
                 </tr>
               ) : (
@@ -205,7 +238,7 @@ export default function CampsList({
                             href={`/dashboard/camps/${item.id}`}
                             className="text-xs font-medium text-dark-4 hover:text-primary dark:text-dark-6"
                           >
-                            {language === "ar" ? "عرض التفاصيل" : "View"}
+                            {t("viewDetails")}
                           </Link>
                           {isAdmin && !isClosed && (
                             <>
@@ -223,6 +256,15 @@ export default function CampsList({
                                 {loadingId === item.id ? "..." : t("deactivate")}
                               </button>
                             </>
+                          )}
+                          {isAdmin && isClosed && (
+                            <button
+                              onClick={() => handleReopen(item.id)}
+                              disabled={loadingId === item.id}
+                              className="text-xs font-medium text-green-600 hover:underline disabled:opacity-40 dark:text-green-400"
+                            >
+                              {loadingId === item.id ? "..." : t("reopenCamp")}
+                            </button>
                           )}
                         </div>
                       </td>

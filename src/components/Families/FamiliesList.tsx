@@ -147,21 +147,19 @@ export default function FamiliesList({
             {t("familiesList")}
           </h1>
           <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
-            {language === "ar"
-              ? "تسجيل ومتابعة العائلات في المخيمات لأغراض الإحصاء"
-              : "Register and track families in camps for statistical purposes"}
+            {t("familiesListSubtitle")}
           </p>
         </div>
         <div className="flex gap-3">
           <ExportButtons 
             data={filteredFamilies}
-            filename="قائمة_العائلات"
+            filename={t("familiesExportFilename")}
             columns={[
-              { key: "headName", label: "اسم رب الأسرة" },
-              { key: "nationalId", label: "رقم الهوية" },
-              { key: "phone", label: "رقم الهاتف" },
-              { key: "memberCount", label: "عدد الأفراد" },
-              { key: "campName", label: "المخيم" }
+              { key: "headName", label: t("headName") },
+              { key: "nationalId", label: t("nationalId") },
+              { key: "phone", label: t("phone") },
+              { key: "memberCount", label: t("memberCount") },
+              { key: "campName", label: t("campName") }
             ]}
           />
           {isManagerOrAdmin && (

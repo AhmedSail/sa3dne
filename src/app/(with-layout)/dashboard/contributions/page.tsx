@@ -15,6 +15,12 @@ export default async function ContributionsPage() {
     redirect("/auth/sign-in");
   }
 
+  // The contributions register belongs to admins and providers. A Camp Manager
+  // works from "Incoming Aid", which is scoped to their assigned camps.
+  if (session.user.role === "camp_manager") {
+    redirect("/dashboard/incoming-aid");
+  }
+
   const isAdmin = session.user.role === "admin";
 
   const baseQuery = db

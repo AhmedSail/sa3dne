@@ -4,6 +4,7 @@ import { useLanguage } from "@/lib/i18n/language-context";
 import Link from "next/link";
 import { useState } from "react";
 import { LineStatusBadge } from "@/components/Contributions/status-badges";
+import { allowedActionsFor } from "@/lib/contributions/receipt";
 
 type IncomingLine = {
   id: string;
@@ -17,11 +18,6 @@ type IncomingLine = {
   submittedAt: string | Date | null;
 };
 
-function formatDate(value: string | Date | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleDateString();
-}
-
 const STATUS_FILTERS = [
   "all",
   "pending",
@@ -31,6 +27,15 @@ const STATUS_FILTERS = [
   "rejected",
 ] as const;
 
+const STATUS_FILTER_KEY: Record<string, string> = {
+  all: "all",
+  pending: "lineStatusPending",
+  received: "lineStatusReceived",
+  partially_received: "lineStatusPartial",
+  not_received: "lineStatusNotReceived",
+  rejected: "lineStatusRejected",
+};
+
 export default function IncomingAidList({
   lines,
   unassigned,
@@ -38,7 +43,7 @@ export default function IncomingAidList({
   lines: IncomingLine[];
   unassigned: boolean;
 }) {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const filtered =
@@ -53,9 +58,7 @@ export default function IncomingAidList({
           {t("incomingAid")}
         </h1>
         <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
-          {language === "ar"
-            ? "المساعدات المُرسلة إلى مخيماتك بانتظار تأكيد الاستلام"
-            : "Aid submitted to your camps awaiting receipt confirmation"}
+          {t("incomingAidSubtitle")}
         </p>
       </div>
 
@@ -77,21 +80,7 @@ export default function IncomingAidList({
                     : "border border-stroke text-dark-4 hover:bg-gray-2 dark:border-dark-3 dark:text-dark-6 dark:hover:bg-dark-2"
                 }`}
               >
-                {s === "all"
-                  ? language === "ar"
-                    ? "الكل"
-                    : "All"
-                  : t(
-                      (
-                        {
-                          pending: "lineStatusPending",
-                          received: "lineStatusReceived",
-                          partially_received: "lineStatusPartial",
-                          not_received: "lineStatusNotReceived",
-                          rejected: "lineStatusRejected",
-                        } as const
-                      )[s] as any,
-                    )}
+                {t(STATUS_FILTER_KEY[s] as any)}
               </button>
             ))}
           </div>
@@ -132,7 +121,15 @@ export default function IncomingAidList({
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((l) => (
+                    filtered.map((l) => {
+                      // Settled lines (received / rejected) carry no action; a
+                      // partially received one can only be completed.
+                      const actions = allowedActionsFor(l.status);
+                      const actionKey = actions.includes("complete")
+                        ? "completeReceipt"
+                        : "confirmReceipt";
+
+                      return (
                       <tr
                         key={l.id}
                         className="group transition-colors hover:bg-gray-1 dark:hover:bg-dark-2"
@@ -153,15 +150,25 @@ export default function IncomingAidList({
                           <LineStatusBadge status={l.status} />
                         </td>
                         <td className="whitespace-nowrap px-4 py-3.5">
-                          <Link
-                            href={`/dashboard/incoming-aid/${l.id}`}
-                            className="text-xs font-medium text-primary hover:underline"
-                          >
-                            {t("confirmReceipt")}
-                          </Link>
+                          {actions.length === 0 ? (
+                            <Link
+                              href={`/dashboard/incoming-aid/${l.id}`}
+                              className="text-xs font-medium text-dark-4 hover:text-primary dark:text-dark-6"
+                            >
+                              {t("viewDetails")}
+                            </Link>
+                          ) : (
+                            <Link
+                              href={`/dashboard/incoming-aid/${l.id}`}
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              {t(actionKey)}
+                            </Link>
+                          )}
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>

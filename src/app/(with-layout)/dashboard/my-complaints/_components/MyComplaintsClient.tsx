@@ -38,7 +38,7 @@ export default function MyComplaintsClient({
   defaultCampId: string;
   defaultName: string;
 }) {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   const isAr = language === "ar";
 
   const [showForm, setShowForm] = useState(false);
@@ -61,7 +61,7 @@ export default function MyComplaintsClient({
     setSubmitting(true);
     try {
       const result = await submitComplaint(form);
-      if (result.error) throw new Error(result.error);
+      if (result.error) throw new Error(t(result.error));
       setSuccessTracking(result.trackingNumber!);
       setShowForm(false);
       toast.success(isAr ? "تم تقديم الشكوى بنجاح" : "Complaint submitted successfully");
@@ -163,7 +163,7 @@ export default function MyComplaintsClient({
                   required
                   value={form.type}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-dark-2 dark:text-white"
                 >
                   <option value="complaint">{isAr ? "شكوى" : "Complaint"}</option>
                   <option value="suggestion">{isAr ? "مقترح" : "Suggestion"}</option>
@@ -179,7 +179,7 @@ export default function MyComplaintsClient({
                   required
                   value={form.campId}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 dark:border-white/10 dark:bg-dark-2 dark:text-white"
                 >
                   {camps.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>

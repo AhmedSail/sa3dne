@@ -12,6 +12,11 @@ import { submitComplaintSchema, trackComplaintSchema, updateComplaintSchema } fr
 import { AuditAction, logAudit } from "@/lib/audit";
 import { z } from "zod";
 
+/**
+ * Server-side outcomes are reported as translation keys rather than sentences,
+ * so the caller can resolve them with `t(...)` in the user's own language.
+ */
+
 function generateTrackingNumber() {
   const date = new Date();
   const dateStr = date.toISOString().split("T")[0].replace(/-/g, "");
@@ -22,7 +27,7 @@ function generateTrackingNumber() {
 export async function submitComplaint(data: z.infer<typeof submitComplaintSchema>) {
   const parsed = submitComplaintSchema.safeParse(data);
   if (!parsed.success) {
-    return { error: "بيانات غير صالحة" };
+    return { error: "errInvalidData" };
   }
 
   const trackingNumber = generateTrackingNumber();
@@ -38,14 +43,14 @@ export async function submitComplaint(data: z.infer<typeof submitComplaintSchema
     return { trackingNumber };
   } catch (error) {
     console.error(error);
-    return { error: "حدث خطأ أثناء إرسال الطلب" };
+    return { error: "errSubmitRequestFailed" };
   }
 }
 
 export async function trackComplaint(data: z.infer<typeof trackComplaintSchema>) {
   const parsed = trackComplaintSchema.safeParse(data);
   if (!parsed.success) {
-    return { error: "رقم تتبع غير صالح" };
+    return { error: "errInvalidTrackingNumber" };
   }
 
   try {
@@ -65,7 +70,7 @@ export async function trackComplaint(data: z.infer<typeof trackComplaintSchema>)
     });
 
     if (!result) {
-      return { error: "لم يتم العثور على طلب بهذا الرقم" };
+      return { error: "errRequestNotFound" };
     }
 
     // Workaround since Drizzle relation `with` might not be defined for camp name if we don't need it.
@@ -73,19 +78,19 @@ export async function trackComplaint(data: z.infer<typeof trackComplaintSchema>)
     return { complaint: result };
   } catch (error) {
     console.error(error);
-    return { error: "حدث خطأ أثناء البحث عن الطلب" };
+    return { error: "errSearchRequestFailed" };
   }
 }
 
 export async function getComplaints(filters?: { status?: string, type?: string, keyword?: string }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
-    throw new Error("غير مصرح");
+    throw new Error("errNotAuthorized");
   }
 
   const role = (session.user as any).role;
   if (role !== "admin" && role !== "camp_manager") {
-    throw new Error("غير مصرح");
+    throw new Error("errNotAuthorized");
   }
 
   let campIds: string[] = [];
@@ -137,24 +142,24 @@ export async function getComplaints(filters?: { status?: string, type?: string, 
     return results;
   } catch (error) {
     console.error(error);
-    throw new Error("فشل في استرجاع البيانات");
+    throw new Error("errFetchFailed");
   }
 }
 
 export async function updateComplaintStatus(id: string, data: z.infer<typeof updateComplaintSchema>) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
-    return { error: "غير مصرح" };
+    return { error: "errNotAuthorized" };
   }
 
   const role = (session.user as any).role;
   if (role !== "admin" && role !== "camp_manager") {
-    return { error: "غير مصرح" };
+    return { error: "errNotAuthorized" };
   }
 
   const parsed = updateComplaintSchema.safeParse(data);
   if (!parsed.success) {
-    return { error: "بيانات غير صالحة" };
+    return { error: "errInvalidData" };
   }
 
   try {
@@ -163,7 +168,7 @@ export async function updateComplaintStatus(id: string, data: z.infer<typeof upd
     });
 
     if (!complaint) {
-      return { error: "الطلب غير موجود" };
+      return { error: "errRequestNotFound" };
     }
 
     if (role === "camp_manager") {
@@ -172,7 +177,7 @@ export async function updateComplaintStatus(id: string, data: z.infer<typeof upd
       });
       const campIds = assignments.map((a) => a.campId);
       if (!campIds.includes(complaint.campId)) {
-        return { error: "غير مصرح لك بتعديل هذا المخيم" };
+        return { error: "errNotAllowedForThisCamp" };
       }
     }
 
@@ -237,6 +242,6 @@ export async function updateComplaintStatus(id: string, data: z.infer<typeof upd
     return { success: true };
   } catch (error) {
     console.error(error);
-    return { error: "حدث خطأ أثناء التحديث" };
+    return { error: "errUpdateFailed" };
   }
 }
