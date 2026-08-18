@@ -2,16 +2,19 @@ import { db } from "@/db";
 import { aidContribution, aidContributionLine } from "@/db/schema";
 import { can, guardApi } from "@/lib/auth/guard";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
+import { isCancellable } from "@/lib/contributions/status";
 import { AuditAction, logAudit } from "@/lib/audit";
-import { notifyOfContributionSubmission } from "@/lib/notifications/service";
+import { notifyOfContributionCancellation } from "@/lib/notifications/service";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * POST /api/contributions/[id]/submit
- * Submits a draft contribution. Requires at least one valid line. On success
- * the header becomes `submitted` and every line becomes `pending`, at which
- * point the lines become visible to the relevant Camp Managers.
+ * POST /api/contributions/[id]/cancel
+ *
+ * Withdraws a submitted contribution that no camp has acted on yet. Once a Camp
+ * Manager has confirmed, partially confirmed or rejected any line, the receipt
+ * history is real and the contribution can no longer be withdrawn — the state
+ * is re-read and re-checked here rather than trusted from a hidden button.
  */
 export async function POST(
   request: NextRequest,
@@ -31,8 +34,7 @@ export async function POST(
     return NextResponse.json({ error: "Contribution not found" }, { status: 404 });
   }
 
-  // Only the owning provider may edit a draft; a role that reads every
-  // contribution is not bound to a provider profile.
+  // Cancelling is the provider withdrawing their own promise.
   if (!can(guard.actor.role, "contribution", "receive")) {
     const provider = await getActiveProviderForUser(guard.actor.id);
     if (!provider || provider.id !== contribution.providerId) {
@@ -40,22 +42,18 @@ export async function POST(
     }
   }
 
-  if (contribution.status !== "draft") {
-    return NextResponse.json(
-      { error: "Only draft contributions can be submitted" },
-      { status: 409 },
-    );
-  }
-
   const lines = await db
-    .select({ id: aidContributionLine.id })
+    .select({ status: aidContributionLine.status })
     .from(aidContributionLine)
     .where(eq(aidContributionLine.contributionId, id));
 
-  if (lines.length === 0) {
+  if (!isCancellable(contribution.status, lines.map((l) => l.status))) {
     return NextResponse.json(
-      { error: "A contribution must contain at least one valid line to be submitted" },
-      { status: 400 },
+      {
+        error:
+          "Only a submitted contribution with no confirmed line can be cancelled",
+      },
+      { status: 409 },
     );
   }
 
@@ -63,30 +61,24 @@ export async function POST(
     const now = new Date();
     await db
       .update(aidContribution)
-      .set({ status: "submitted", submittedAt: now, updatedAt: now })
+      .set({ status: "cancelled", updatedAt: now })
       .where(eq(aidContribution.id, id));
 
-    await db
-      .update(aidContributionLine)
-      .set({ status: "pending", updatedAt: now })
-      .where(eq(aidContributionLine.contributionId, id));
-
-    // Accountability + notify the relevant Camp Managers (best-effort; must not
-    // fail the submission itself).
+    // Best-effort accountability and notice; neither may fail the cancellation.
     await logAudit({
       userId: guard.actor.id,
-      action: AuditAction.CONTRIBUTION_SUBMIT,
+      action: AuditAction.CONTRIBUTION_CANCEL,
       entityType: "contribution",
       entityId: id,
       oldValue: { status: contribution.status },
-      newValue: { status: "submitted", lineCount: lines.length },
+      newValue: { status: "cancelled" },
       request,
     });
-    await notifyOfContributionSubmission(id);
+    await notifyOfContributionCancellation(id);
 
-    return NextResponse.json({ success: true, status: "submitted" });
+    return NextResponse.json({ success: true, status: "cancelled" });
   } catch (error) {
-    console.error("Error submitting contribution:", error);
+    console.error("Error cancelling contribution:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

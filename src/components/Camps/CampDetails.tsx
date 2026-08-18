@@ -14,6 +14,8 @@ type CampDetailsData = {
   name: string;
   location: string;
   capacity: number;
+  registeredFamilies: number;
+  registeredIndividuals: number;
   operationalStatus: string;
   needLevel: string;
   notes: string | null;
@@ -94,6 +96,22 @@ export default function CampDetails({ camp }: { camp: CampDetailsData }) {
               </p>
               <p className="mt-1 text-sm font-medium text-dark dark:text-white">
                 {camp.capacity}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-dark-4 dark:text-dark-6">
+                {t("registeredFamilies")}
+              </p>
+              <p className="mt-1 text-sm font-medium text-dark dark:text-white">
+                {`${camp.registeredFamilies} / ${camp.capacity}`}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-dark-4 dark:text-dark-6">
+                {t("registeredIndividuals")}
+              </p>
+              <p className="mt-1 text-sm font-medium text-dark dark:text-white">
+                {camp.registeredIndividuals}
               </p>
             </div>
             <div>

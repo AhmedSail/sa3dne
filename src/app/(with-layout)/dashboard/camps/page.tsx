@@ -1,9 +1,9 @@
 import { db } from "@/db";
-import { camp } from "@/db/schema";
+import { camp, family } from "@/db/schema";
 import CampsList from "@/components/Camps/CampsList";
 import { auth } from "@/lib/auth";
 import { getAssignedCampIds } from "@/lib/contributions/access";
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -37,9 +37,46 @@ export default async function CampsDashboardPage() {
           .where(isCampManager ? inArray(camp.id, assignedCampIds) : undefined)
           .orderBy(camp.createdAt);
 
+  // Registered population per camp. Capacity is expressed in families, so the
+  // family count is what compares against it; individuals are shown alongside
+  // it for population reporting.
+  const registrationRows =
+    camps.length === 0
+      ? []
+      : await db
+          .select({
+            campId: family.campId,
+            families: sql<number>`count(*)`.mapWith(Number),
+            individuals:
+              sql<number>`coalesce(sum(${family.memberCount}), 0)`.mapWith(
+                Number,
+              ),
+          })
+          .from(family)
+          .where(
+            and(
+              eq(family.status, "active"),
+              inArray(
+                family.campId,
+                camps.map((c) => c.id),
+              ),
+            ),
+          )
+          .groupBy(family.campId);
+
+  const registrationByCamp = new Map(
+    registrationRows.map((r) => [r.campId, r]),
+  );
+
+  const campsWithRegistration = camps.map((c) => ({
+    ...c,
+    registeredFamilies: registrationByCamp.get(c.id)?.families ?? 0,
+    registeredIndividuals: registrationByCamp.get(c.id)?.individuals ?? 0,
+  }));
+
   return (
     <CampsList
-      initialCamps={camps}
+      initialCamps={campsWithRegistration}
       isAdmin={isAdmin}
       unassigned={isCampManager && assignedCampIds.length === 0}
     />

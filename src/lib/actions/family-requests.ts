@@ -1,9 +1,10 @@
 "use server";
 
-import { auth } from "@/lib/auth/auth";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
+import { guardAction, isWithinCampScope } from "@/lib/auth/guard";
+import { getOwnFamily } from "@/lib/families/access";
+import { notifyReviewersOfFamilyRequest } from "@/lib/notifications/service";
 import { familyUpdateRequest } from "@/db/schema/family_requests";
 import { family, familyMember } from "@/db/schema/families";
 import { eq, and, desc } from "drizzle-orm";
@@ -13,9 +14,14 @@ export async function submitUpdateFamilyRequest(data: {
   type: "add_member" | "remove_member" | "update_family_info" | "update_member";
   payload: any;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) {
-    return { error: "errSignInFirst" };
+  const guard = await guardAction("family", "manage_own");
+  if (!guard.ok) return { error: guard.error };
+
+  // The household is resolved from the session; a `familyId` naming somebody
+  // else's family is refused rather than queued for a reviewer to approve.
+  const ownFamily = await getOwnFamily(guard.actor);
+  if (!ownFamily || ownFamily.id !== data.familyId) {
+    return { error: "errNotAuthorized" };
   }
 
   try {
@@ -56,10 +62,11 @@ export async function submitUpdateFamilyRequest(data: {
       }
     }
 
+    const requestId = crypto.randomUUID();
     await db.insert(familyUpdateRequest).values({
-      id: crypto.randomUUID(),
+      id: requestId,
       familyId: data.familyId,
-      requestedById: session.user.id,
+      requestedById: guard.actor.id,
       type: data.type,
       payload: data.payload,
       status: "pending",
@@ -67,7 +74,11 @@ export async function submitUpdateFamilyRequest(data: {
       updatedAt: new Date(),
     });
 
+    // Best-effort: a notification failure must not fail the submission.
+    await notifyReviewersOfFamilyRequest(requestId);
+
     revalidatePath("/dashboard/my-family");
+    revalidatePath("/dashboard/family-requests");
     return { success: true };
   } catch (error: any) {
     console.error("Submit family update request error:", error);
@@ -76,10 +87,8 @@ export async function submitUpdateFamilyRequest(data: {
 }
 
 export async function approveFamilyRequest(requestId: string) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || ((session.user as any).role !== "camp_manager" && (session.user as any).role !== "admin")) {
-    return { error: "errNotAuthorized" };
-  }
+  const guard = await guardAction("family", "update");
+  if (!guard.ok) return { error: guard.error };
 
   try {
     const request = await db.query.familyUpdateRequest.findFirst({
@@ -90,13 +99,22 @@ export async function approveFamilyRequest(requestId: string) {
       return { error: "errRequestNotFoundOrProcessed" };
     }
 
+    // The list view is already scoped, but the action must not depend on that:
+    // a manager may only review requests for families in their own camps.
+    const target = await db.query.family.findFirst({
+      where: eq(family.id, request.familyId),
+    });
+    if (!target || !isWithinCampScope(guard.campIds, target.campId)) {
+      return { error: "errNotAuthorized" };
+    }
+
     await db.transaction(async (tx) => {
       // 1. Update status
       await tx
         .update(familyUpdateRequest)
         .set({
           status: "approved",
-          reviewedById: session.user.id,
+          reviewedById: guard.actor.id,
           reviewedAt: new Date(),
           updatedAt: new Date(),
         })
@@ -155,22 +173,34 @@ export async function approveFamilyRequest(requestId: string) {
 }
 
 export async function rejectFamilyRequest(requestId: string, reason: string) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || ((session.user as any).role !== "camp_manager" && (session.user as any).role !== "admin")) {
-    return { error: "errNotAuthorized" };
-  }
+  const guard = await guardAction("family", "update");
+  if (!guard.ok) return { error: guard.error };
 
   if (!reason || reason.trim() === "") {
     return { error: "errRejectionReasonRequired" };
   }
 
   try {
+    const request = await db.query.familyUpdateRequest.findFirst({
+      where: (req, { eq }) => eq(req.id, requestId),
+    });
+    if (!request || request.status !== "pending") {
+      return { error: "errRequestNotFoundOrProcessed" };
+    }
+
+    const target = await db.query.family.findFirst({
+      where: eq(family.id, request.familyId),
+    });
+    if (!target || !isWithinCampScope(guard.campIds, target.campId)) {
+      return { error: "errNotAuthorized" };
+    }
+
     await db
       .update(familyUpdateRequest)
       .set({
         status: "rejected",
         rejectionReason: reason,
-        reviewedById: session.user.id,
+        reviewedById: guard.actor.id,
         reviewedAt: new Date(),
         updatedAt: new Date(),
       })

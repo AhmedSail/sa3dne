@@ -55,6 +55,11 @@ type ApiSessionGuard =
   | { ok: true; actor: Actor }
   | { ok: false; response: NextResponse };
 
+/** Server-action result: a translation key rather than an HTTP response. */
+type ActionGuard =
+  | ({ ok: true } & GuardContext)
+  | { ok: false; error: "errSignInFirst" | "errNotAuthorized" };
+
 function isAppRole(role: unknown): role is AppRole {
   return typeof role === "string" && role in roles;
 }
@@ -219,6 +224,31 @@ export async function guardApiSession(request: Request): Promise<ApiSessionGuard
     };
   }
   return { ok: true, actor };
+}
+
+/**
+ * Guard for server actions.
+ *
+ * Actions report failure as a translation key the caller resolves with `t(...)`
+ * rather than throwing, so this mirrors that convention instead of returning a
+ * `NextResponse`.
+ *
+ *   const guard = await guardAction("family", "update");
+ *   if (!guard.ok) return { error: guard.error };
+ */
+export async function guardAction<R extends Resource>(
+  resource: R,
+  action: Action<R>,
+  options: GuardOptions = {},
+): Promise<ActionGuard> {
+  const actor = await getActor();
+  if (!actor) return { ok: false, error: "errSignInFirst" };
+
+  if (!isAllowed(actor, resource, action, options)) {
+    return { ok: false, error: "errNotAuthorized" };
+  }
+
+  return { ok: true, actor, campIds: await getCampScope(actor) };
 }
 
 /**

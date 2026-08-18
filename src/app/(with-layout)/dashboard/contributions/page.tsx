@@ -1,9 +1,15 @@
 import { db } from "@/db";
-import { aidContribution, aidProvider } from "@/db/schema";
+import {
+  aidContribution,
+  aidContributionLine,
+  aidProvider,
+  camp,
+} from "@/db/schema";
 import ContributionsList from "@/components/Contributions/ContributionsList";
 import { can, guardPage } from "@/lib/auth/guard";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
-import { desc, eq } from "drizzle-orm";
+import { deriveDisplayStatus, isCancellable } from "@/lib/contributions/status";
+import { desc, eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -47,9 +53,50 @@ export default async function ContributionsPage() {
     }
   }
 
+  // The header status alone would show every submitted contribution as
+  // "submitted" forever; the receiving camps' line statuses are what tell the
+  // real story, so they are folded into one display status per row.
+  const lines = rows.length
+    ? await db
+        .select({
+          contributionId: aidContributionLine.contributionId,
+          campId: aidContributionLine.campId,
+          campName: camp.name,
+          status: aidContributionLine.status,
+        })
+        .from(aidContributionLine)
+        .innerJoin(camp, eq(aidContributionLine.campId, camp.id))
+        .where(
+          inArray(
+            aidContributionLine.contributionId,
+            rows.map((r) => r.id),
+          ),
+        )
+    : [];
+
+  const contributions = rows.map((row) => {
+    const own = lines.filter((l) => l.contributionId === row.id);
+    const statuses = own.map((l) => l.status);
+
+    return {
+      ...row,
+      displayStatus: deriveDisplayStatus(row.status, statuses),
+      // Only the owning provider withdraws a contribution, never the overseer.
+      cancellable: !isAdmin && isCancellable(row.status, statuses),
+      camps: [...new Map(own.map((l) => [l.campId, l.campName])).entries()].map(
+        ([id, name]) => ({ id, name }),
+      ),
+    };
+  });
+
+  const camps = [...new Map(lines.map((l) => [l.campId, l.campName])).entries()]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <ContributionsList
-      contributions={rows}
+      contributions={contributions}
+      camps={camps}
       canCreate={canCreate}
       showProvider={isAdmin}
       titleKey="contributionsList"

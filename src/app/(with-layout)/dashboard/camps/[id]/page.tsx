@@ -1,8 +1,8 @@
 import { db } from "@/db";
-import { camp, campAssignment, user } from "@/db/schema";
+import { camp, campAssignment, family, user } from "@/db/schema";
 import CampDetails from "@/components/Camps/CampDetails";
 import { can, guardPage, isWithinCampScope } from "@/lib/auth/guard";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { redirect, notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -41,11 +41,26 @@ export default async function CampDetailsPage({
         .where(eq(campAssignment.campId, id))
     : [];
 
+  // Registered population of the camp. Capacity is counted in families, so the
+  // family count is what compares against it; individuals come from the same
+  // active families.
+  const registration = await db
+    .select({
+      families: sql<number>`count(*)`.mapWith(Number),
+      individuals: sql<number>`coalesce(sum(${family.memberCount}), 0)`.mapWith(
+        Number,
+      ),
+    })
+    .from(family)
+    .where(and(eq(family.campId, id), eq(family.status, "active")));
+
   const formattedCamp = {
     id: campData[0].id,
     name: campData[0].name,
     location: campData[0].location,
     capacity: campData[0].capacity,
+    registeredFamilies: registration[0]?.families ?? 0,
+    registeredIndividuals: registration[0]?.individuals ?? 0,
     operationalStatus: campData[0].operationalStatus,
     needLevel: campData[0].needLevel,
     notes: campData[0].notes,

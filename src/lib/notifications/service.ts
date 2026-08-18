@@ -6,6 +6,8 @@ import {
   aidType,
   camp,
   campAssignment,
+  family,
+  familyUpdateRequest,
   notification,
   user,
 } from "@/db/schema";
@@ -85,13 +87,14 @@ async function getAdminUserIds(): Promise<string[]> {
 }
 
 /**
- * Notifies the relevant Camp Managers that a contribution was submitted.
+ * Notifies everyone who needs to act on a submitted contribution.
  *
- * For each distinct camp in the submitted lines, every assigned Camp Manager
- * receives one unread notification. If a camp has no assigned manager, the
- * System Administrator(s) are notified as a fallback so nothing goes unseen.
+ * For each distinct camp in the submitted lines, every assigned Camp Manager is
+ * told about their own camp specifically. Administrators oversee all camps, so
+ * they always receive one summary notification — not only, as before, when a
+ * camp happened to have no manager.
  */
-export async function notifyCampManagersOfSubmission(
+export async function notifyOfContributionSubmission(
   contributionId: string,
 ): Promise<void> {
   try {
@@ -131,47 +134,106 @@ export async function notifyCampManagersOfSubmission(
       managersByCamp.set(a.campId, list);
     }
 
-    const link = `/dashboard/incoming-aid`;
     const rows: CreateNotificationInput[] = [];
-    let anyUnmanaged = false;
+    const unmanagedCamps: string[] = [];
 
     for (const campId of campIds) {
       const campName = campNames.get(campId)!;
       const managers = managersByCamp.get(campId) ?? [];
-      if (managers.length === 0) {
-        anyUnmanaged = true;
-        continue;
-      }
+      if (managers.length === 0) unmanagedCamps.push(campName);
+
       for (const managerId of managers) {
         rows.push({
           userId: managerId,
-          title: "New aid submitted",
-          message: `${providerName} submitted aid for ${campName}.`,
+          title: "مساعدات جديدة بانتظار الاستلام",
+          message: `${providerName} أرسل مساعدات إلى ${campName}.`,
           entityType: "contribution",
           entityId: contributionId,
-          link,
+          link: "/dashboard/incoming-aid",
         });
       }
     }
 
-    // Fallback: notify admins about any camp that has no manager.
-    if (anyUnmanaged) {
-      const adminIds = await getAdminUserIds();
-      for (const adminId of adminIds) {
-        rows.push({
-          userId: adminId,
-          title: "New aid submitted (unassigned camp)",
-          message: `${providerName} submitted aid for a camp with no assigned manager.`,
-          entityType: "contribution",
-          entityId: contributionId,
-          link,
-        });
-      }
+    // Administrators oversee every camp, so they are always told — with the
+    // unmanaged camps called out, since nobody else will see those lines.
+    const adminIds = await getAdminUserIds();
+    const campList = campIds.map((id) => campNames.get(id)!).join("، ");
+    const warning = unmanagedCamps.length
+      ? ` تنبيه: لا يوجد مدير معيّن لـ ${unmanagedCamps.join("، ")}.`
+      : "";
+
+    for (const adminId of adminIds) {
+      rows.push({
+        userId: adminId,
+        title: "مساهمة جديدة مُرسلة",
+        message: `${providerName} أرسل مساعدات إلى ${campList}.${warning}`,
+        entityType: "contribution",
+        entityId: contributionId,
+        link: `/dashboard/contributions/${contributionId}`,
+      });
     }
 
     await createManyNotifications(rows);
   } catch (error) {
-    console.error("Failed to notify camp managers of submission", error);
+    console.error("Failed to notify of contribution submission", error);
+  }
+}
+
+/**
+ * Notifies the receiving side that a provider withdrew a contribution before
+ * anything was confirmed, so nobody keeps waiting for aid that is not coming.
+ */
+export async function notifyOfContributionCancellation(
+  contributionId: string,
+): Promise<void> {
+  try {
+    const lines = await db
+      .select({
+        campId: aidContributionLine.campId,
+        campName: camp.name,
+        providerName: aidProvider.name,
+      })
+      .from(aidContributionLine)
+      .innerJoin(camp, eq(aidContributionLine.campId, camp.id))
+      .innerJoin(
+        aidContribution,
+        eq(aidContributionLine.contributionId, aidContribution.id),
+      )
+      .innerJoin(aidProvider, eq(aidContribution.providerId, aidProvider.id))
+      .where(eq(aidContributionLine.contributionId, contributionId));
+
+    if (lines.length === 0) return;
+
+    const providerName = lines[0].providerName;
+    const campNames = new Map<string, string>();
+    for (const l of lines) campNames.set(l.campId, l.campName);
+    const campIds = [...campNames.keys()];
+
+    const assignments = await db
+      .select({ userId: campAssignment.userId })
+      .from(campAssignment)
+      .where(inArray(campAssignment.campId, campIds));
+
+    const recipients = new Set<string>([
+      ...assignments.map((a) => a.userId),
+      ...(await getAdminUserIds()),
+    ]);
+    if (recipients.size === 0) return;
+
+    const campList = campIds.map((id) => campNames.get(id)!).join("، ");
+
+    await createManyNotifications(
+      [...recipients].map((userId) => ({
+        userId,
+        title: "تم إلغاء مساهمة",
+        message: `${providerName} ألغى المساعدات المُرسلة إلى ${campList}.`,
+        entityType: "contribution",
+        entityId: contributionId,
+        link: "/dashboard/incoming-aid",
+      })),
+    );
+  } catch (error) {
+    console.error("Failed to notify of contribution cancellation", error);
   }
 }
 
@@ -224,6 +286,75 @@ export async function notifyProviderOfReceipt(lineId: string): Promise<void> {
     });
   } catch (error) {
     console.error("Failed to notify provider of receipt", error);
+  }
+}
+
+const FAMILY_REQUEST_LABEL: Record<string, string> = {
+  add_member: "إضافة فرد",
+  remove_member: "حذف فرد",
+  update_family_info: "تعديل بيانات العائلة",
+  update_member: "تعديل بيانات فرد",
+};
+
+/**
+ * Notifies the reviewers of a newly submitted family update request.
+ *
+ * Recipients are the Camp Managers assigned to the family's camp plus every
+ * System Administrator — an administrator reviews across all camps, so they are
+ * always addressed, not only as a fallback for an unmanaged camp.
+ */
+export async function notifyReviewersOfFamilyRequest(
+  requestId: string,
+): Promise<void> {
+  try {
+    const [request] = await db
+      .select({
+        id: familyUpdateRequest.id,
+        type: familyUpdateRequest.type,
+        requestedById: familyUpdateRequest.requestedById,
+        campId: family.campId,
+        campName: camp.name,
+        headName: family.headName,
+      })
+      .from(familyUpdateRequest)
+      .innerJoin(family, eq(familyUpdateRequest.familyId, family.id))
+      .leftJoin(camp, eq(family.campId, camp.id))
+      .where(eq(familyUpdateRequest.id, requestId))
+      .limit(1);
+
+    if (!request) return;
+
+    const managers = await db
+      .select({ userId: campAssignment.userId })
+      .from(campAssignment)
+      .where(eq(campAssignment.campId, request.campId));
+
+    const adminIds = await getAdminUserIds();
+
+    // A manager who is also an administrator must not receive it twice.
+    const recipients = new Set<string>([
+      ...managers.map((m) => m.userId),
+      ...adminIds,
+    ]);
+    // The requester reviewing their own request would be meaningless.
+    recipients.delete(request.requestedById);
+    if (recipients.size === 0) return;
+
+    const label = FAMILY_REQUEST_LABEL[request.type] ?? "تحديث بيانات";
+    const campSuffix = request.campName ? ` — ${request.campName}` : "";
+
+    await createManyNotifications(
+      [...recipients].map((userId) => ({
+        userId,
+        title: "طلب تحديث عائلة جديد",
+        message: `${label}: عائلة ${request.headName}${campSuffix} بانتظار المراجعة.`,
+        entityType: "family_update_request",
+        entityId: request.id,
+        link: "/dashboard/family-requests",
+      })),
+    );
+  } catch (error) {
+    console.error("Failed to notify reviewers of family request", error);
   }
 }
 

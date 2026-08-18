@@ -7,7 +7,7 @@ import {
   camp,
 } from "@/db/schema";
 import { guardApi } from "@/lib/auth/guard";
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -29,8 +29,9 @@ export async function GET(request: NextRequest) {
   }
 
   const filters = [
-    // Never show draft contributions on the incoming-aid side.
-    ne(aidContribution.status, "draft"),
+    // Only submitted contributions are incoming aid: a draft was never promised
+    // and a cancelled one has been withdrawn, so neither is awaiting receipt.
+    eq(aidContribution.status, "submitted"),
   ];
   if (isCampManager) {
     filters.push(inArray(aidContributionLine.campId, assignedCampIds));

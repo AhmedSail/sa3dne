@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { aidContribution, aidProvider } from "@/db/schema";
 import { can, guardApi } from "@/lib/auth/guard";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
+import { deriveDisplayStatus, isCancellable } from "@/lib/contributions/status";
 import { desc, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -41,27 +42,15 @@ export async function GET(request: NextRequest) {
   });
 
   const enrichedRows = rows.map((row) => {
-    const lines = allLines.filter((l) => l.contributionId === row.id);
-    let displayStatus = row.status as string;
+    const lineStatuses = allLines
+      .filter((l) => l.contributionId === row.id)
+      .map((l) => l.status);
 
-    if (row.status === "submitted" && lines.length > 0) {
-      const total = lines.length;
-      const receivedCount = lines.filter((l) => l.status === "received" || l.status === "partially_received").length;
-      const fullyReceivedCount = lines.filter((l) => l.status === "received").length;
-      const terminalCount = lines.filter((l) => l.status === "received" || l.status === "partially_received" || l.status === "not_received" || l.status === "rejected").length;
-
-      if (fullyReceivedCount === total) {
-        displayStatus = "completed";
-      } else if (terminalCount === total && receivedCount > 0) {
-        displayStatus = "partially_received";
-      } else if (terminalCount === total && receivedCount === 0) {
-        displayStatus = "not_received";
-      } else if (receivedCount > 0) {
-        displayStatus = "partially_received";
-      }
-    }
-
-    return { ...row, displayStatus };
+    return {
+      ...row,
+      displayStatus: deriveDisplayStatus(row.status, lineStatuses),
+      cancellable: isCancellable(row.status, lineStatuses),
+    };
   });
 
   if (seesAll) {

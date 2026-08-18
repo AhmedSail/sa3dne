@@ -11,6 +11,8 @@ type Camp = {
   name: string;
   location: string;
   capacity: number;
+  registeredFamilies: number;
+  registeredIndividuals: number;
   operationalStatus: string;
   needLevel: string;
   status: string;
@@ -154,7 +156,7 @@ export default function CampsList({
                   {t("campLocation")}
                 </th>
                 <th className="whitespace-nowrap px-4 py-3.5 font-semibold text-dark-4 dark:text-dark-6">
-                  {t("campCapacity")}
+                  {t("campRegistered")}
                 </th>
                 <th className="whitespace-nowrap px-4 py-3.5 font-semibold text-dark-4 dark:text-dark-6">
                   {t("campNeedLevel")}
@@ -203,9 +205,17 @@ export default function CampsList({
                         {t(item.location)}
                       </td>
 
-                      {/* Capacity */}
-                      <td className="whitespace-nowrap px-4 py-3.5 text-dark-4 dark:text-dark-6">
-                        {item.capacity}
+                      {/* Registered families / individuals */}
+                      <td className="whitespace-nowrap px-4 py-3.5">
+                        <span className="font-medium text-dark dark:text-white">
+                          {item.registeredFamilies}
+                        </span>
+                        <span className="text-dark-4 dark:text-dark-6">
+                          {` / ${item.capacity}`}
+                        </span>
+                        <span className="block text-xs text-dark-4 dark:text-dark-6">
+                          {`${item.registeredIndividuals} ${t("individualsUnit")}`}
+                        </span>
                       </td>
 
                       {/* Need Level */}

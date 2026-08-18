@@ -74,7 +74,7 @@ export function Sidebar({ userRole }: SidebarProps) {
         inert={!isOpen}
       >
         <div className="flex h-full flex-col py-6 pl-4 pr-2">
-          <div className="relative flex items-center justify-center pb-4 border-b border-gray-200 dark:border-gray-800">
+          <div className="relative flex items-center justify-center pb-4">
             <Link
               href={"/"}
               onClick={() => isMobile && toggleSidebar()}
