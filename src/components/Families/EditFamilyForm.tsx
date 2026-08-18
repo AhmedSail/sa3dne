@@ -1,6 +1,10 @@
 "use client";
 
 import { useLanguage } from "@/lib/i18n/language-context";
+import {
+  isValidNationalId,
+  toNationalIdInput,
+} from "@/lib/validations/national-id";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -114,8 +118,8 @@ export default function EditFamilyForm({
       return;
     }
 
-    if (!form.nationalId || form.nationalId.trim().length < 4) {
-      toast.error(language === "ar" ? "رقم الهوية غير صالح" : "A valid national ID is required");
+    if (!isValidNationalId(form.nationalId)) {
+      toast.error(t("nationalIdFormatError"));
       return;
     }
 
@@ -123,6 +127,12 @@ export default function EditFamilyForm({
     for (const m of members) {
       if (!m.name.trim()) {
         toast.error(language === "ar" ? "اسم الفرد مطلوب لجميع الأفراد المضافين" : "Member name is required for all added members");
+        return;
+      }
+      // Blank is allowed — a child may have no ID yet — but a partial number
+      // would be saved as a malformed ID.
+      if (m.nationalId && !isValidNationalId(m.nationalId)) {
+        toast.error(t("nationalIdFormatError"));
         return;
       }
       if (!m.birthDate) {
@@ -263,8 +273,16 @@ export default function EditFamilyForm({
                     type="text"
                     name="nationalId"
                     required
+                    maxLength={9}
+                    inputMode="numeric"
+                    pattern="[0-9]{9}"
                     value={form.nationalId}
-                    onChange={handleChange}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        nationalId: toNationalIdInput(e.target.value),
+                      }))
+                    }
                     className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
                   />
                 </div>
@@ -388,9 +406,11 @@ export default function EditFamilyForm({
                           </label>
                           <input
                             type="text"
+                            maxLength={9}
+                            inputMode="numeric"
                             value={m.nationalId}
                             onChange={(e) => {
-                              const val = e.target.value;
+                              const val = toNationalIdInput(e.target.value);
                               setMembers((prev) =>
                                 prev.map((item) =>
                                   item.id === m.id ? { ...item, nationalId: val } : item,

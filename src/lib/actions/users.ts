@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { user, account, session } from "@/db/schema/auth";
 import { hashPassword } from "better-auth/crypto";
 import { eq } from "drizzle-orm";
+import { NATIONAL_ID_ERROR, isValidNationalId } from "@/lib/validations/national-id";
 
 /**
  * Server-side outcomes are reported as translation keys rather than sentences.
@@ -43,6 +44,7 @@ export async function createUserAction(data: CreateUserInput) {
   const isBeneficiary = data.role === "beneficiary";
   if (isBeneficiary) {
     if (!data.household?.nationalId?.trim()) return { error: "errNationalIdRequired" };
+    if (!isValidNationalId(data.household.nationalId)) return { error: NATIONAL_ID_ERROR };
     if (!data.household?.campId) return { error: "errCampRequired" };
     if (!data.household?.memberCount || data.household.memberCount < 1) {
       return { error: "memberCountValidationError" };

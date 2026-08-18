@@ -6,6 +6,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { createUserAction } from "@/lib/actions/users";
+import {
+  isValidNationalId,
+  toNationalIdInput,
+} from "@/lib/validations/national-id";
 
 export default function NewUserForm({ camps = [] }: { camps?: {id: string, name: string}[] }) {
   const router = useRouter();
@@ -55,6 +59,10 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
     if (isBeneficiary) {
       if (!form.nationalId.trim()) {
         toast.error(t("errNationalIdRequired"));
+        return;
+      }
+      if (!isValidNationalId(form.nationalId)) {
+        toast.error(t("nationalIdFormatError"));
         return;
       }
       if (!form.householdCampId) {
@@ -223,8 +231,16 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
                 <input
                   type="text"
                   name="nationalId"
+                  maxLength={9}
+                  inputMode="numeric"
+                  pattern="[0-9]{9}"
                   value={form.nationalId}
-                  onChange={handleChange}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      nationalId: toNationalIdInput(e.target.value),
+                    }))
+                  }
                   className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
                 />
               </div>

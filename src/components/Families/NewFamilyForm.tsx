@@ -6,6 +6,10 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import {
+  isValidNationalId,
+  toNationalIdInput,
+} from "@/lib/validations/national-id";
 
 type CampInfo = {
   id: string;
@@ -65,8 +69,8 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
       toast.error(language === "ar" ? "يجب إدخال اسم رب الأسرة بشكل صحيح" : "Family head name must be at least 2 characters");
       return;
     }
-    if (!form.nationalId || form.nationalId.trim().length !== 9) {
-      toast.error(language === "ar" ? "رقم الهوية يجب أن يكون 9 أرقام بالضبط" : "National ID must be exactly 9 digits");
+    if (!isValidNationalId(form.nationalId)) {
+      toast.error(t("nationalIdFormatError"));
       return;
     }
     if (!form.phone || form.phone.trim().length < 7) {
@@ -101,6 +105,12 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
     for (const m of members) {
       if (!m.name.trim()) {
         toast.error(language === "ar" ? "اسم الفرد مطلوب لجميع الأفراد المضافين" : "Member name is required for all added members");
+        return;
+      }
+      // Blank is allowed — a child may have no ID yet — but a partial number
+      // would be saved as a malformed ID.
+      if (m.nationalId && !isValidNationalId(m.nationalId)) {
+        toast.error(t("nationalIdFormatError"));
         return;
       }
       if (!m.birthDate) {
@@ -247,8 +257,10 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
                       pattern="[0-9]{9}"
                       value={form.nationalId}
                       onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, "").slice(0, 9);
-                        setForm((prev) => ({ ...prev, nationalId: val }));
+                        setForm((prev) => ({
+                          ...prev,
+                          nationalId: toNationalIdInput(e.target.value),
+                        }));
                       }}
                       placeholder={language === "ar" ? "9 أرقام" : "9 digits"}
                       className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
@@ -450,7 +462,7 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
                               maxLength={9}
                               inputMode="numeric"
                               onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, "").slice(0, 9);
+                                const val = toNationalIdInput(e.target.value);
                                 setMembers((prev) =>
                                   prev.map((item) =>
                                     item.id === m.id ? { ...item, nationalId: val } : item,

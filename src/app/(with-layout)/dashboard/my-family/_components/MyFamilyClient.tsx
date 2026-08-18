@@ -2,6 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/lib/i18n/language-context";
+import {
+  isValidNationalId,
+  toNationalIdInput,
+} from "@/lib/validations/national-id";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { submitUpdateFamilyRequest } from "@/lib/actions/family-requests";
@@ -371,8 +375,15 @@ export default function MyFamilyClient({
                   </label>
                   <input
                     type="text"
+                    maxLength={9}
+                    inputMode="numeric"
                     value={memberForm.nationalId}
-                    onChange={(e) => setMemberForm({ ...memberForm, nationalId: e.target.value })}
+                    onChange={(e) =>
+                      setMemberForm({
+                        ...memberForm,
+                        nationalId: toNationalIdInput(e.target.value),
+                      })
+                    }
                     className="w-full rounded-lg border-[1.5px] border-stroke bg-transparent px-4 py-2 text-dark outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:focus:border-primary"
                   />
                 </div>

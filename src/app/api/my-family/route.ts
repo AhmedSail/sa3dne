@@ -6,6 +6,7 @@ import { family } from "@/db/schema/families";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { nationalIdSchema } from "@/lib/validations/national-id";
 
 /**
  * The beneficiary self-service household record.
@@ -25,7 +26,7 @@ const myFamilySchema = z.object({
 
 /** Registration also needs the ID the household is registered under. */
 const registerFamilySchema = myFamilySchema.extend({
-  nationalId: z.string().min(4),
+  nationalId: nationalIdSchema,
 });
 
 /**

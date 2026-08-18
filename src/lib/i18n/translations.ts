@@ -197,7 +197,6 @@ export const translations = {
     linkedUser: "حساب النظام المرتبط",
     selectUserPlaceholder: "اختر حساباً للربط...",
     contributionHistory: "سجل المساهمات",
-    placeholderHistoryText: "سيتم عرض سجل المساهمات لهذه الجهة هنا في المرحلة الثالثة.",
 
     // Form Validation general
     fieldRequired: "هذا الحقل مطلوب",
@@ -296,6 +295,7 @@ export const translations = {
     headEmailLabel: "البريد الإلكتروني لرب الأسرة",
     headPasswordLabel: "كلمة مرور رب الأسرة",
     errNationalIdRequired: "رقم الهوية مطلوب",
+    nationalIdFormatError: "رقم الهوية يجب أن يكون 9 أرقام بالضبط",
     errCampRequired: "يجب اختيار مخيم",
     errNationalIdInUse: "رقم الهوية مستخدم بالفعل لأسرة نشطة",
     errHeadEmailRequired: "البريد الإلكتروني لرب الأسرة مطلوب",
@@ -766,7 +766,6 @@ export const translations = {
     linkedUser: "Linked System Account",
     selectUserPlaceholder: "Select system user to link...",
     contributionHistory: "Contribution History",
-    placeholderHistoryText: "Contribution history logs for this provider will appear here in Phase 3.",
 
     // Form Validation general
     fieldRequired: "This field is required",
@@ -865,6 +864,7 @@ export const translations = {
     headEmailLabel: "Head of household e-mail",
     headPasswordLabel: "Head of household password",
     errNationalIdRequired: "National ID is required",
+    nationalIdFormatError: "National ID must be exactly 9 digits",
     errCampRequired: "A camp must be selected",
     errNationalIdInUse: "This national ID already belongs to an active family",
     errHeadEmailRequired: "The head of household e-mail is required",

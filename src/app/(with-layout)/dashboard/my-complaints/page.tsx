@@ -1,11 +1,9 @@
-import { auth } from "@/lib/auth/auth";
+import { guardPage } from "@/lib/auth/guard";
 import { db } from "@/db";
 import { complaints } from "@/db/schema/complaints";
 import { family } from "@/db/schema/families";
 import { camp } from "@/db/schema/camps";
 import { eq, desc } from "drizzle-orm";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import MyComplaintsClient from "./_components/MyComplaintsClient";
 import { Metadata } from "next";
 
@@ -16,19 +14,13 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function MyComplaintsPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/auth/sign-in");
+  const { actor } = await guardPage("family", "manage_own");
 
-  const role = (session.user as any).role;
-  if (role !== "beneficiary") redirect("/dashboard");
-
-  const nationalId = session.user.email?.replace("@sa3dne.local", "") ?? "";
-
-  // Get the family to find the campId
+  // The household is joined to the account by `family.user_id`.
   const familyData = await db
     .select({ id: family.id, campId: family.campId, headName: family.headName })
     .from(family)
-    .where(eq(family.nationalId, nationalId))
+    .where(eq(family.userId, actor.id))
     .limit(1);
 
   const myFamily = familyData[0] ?? null;

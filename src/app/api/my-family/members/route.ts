@@ -5,13 +5,14 @@ import { db } from "@/db";
 import { familyMember } from "@/db/schema/families";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { optionalNationalIdSchema } from "@/lib/validations/national-id";
 
 const memberSchema = z.object({
   name: z.string().min(2),
   relationship: z.string().min(1),
   educationLevel: z.string().min(1),
   gender: z.enum(["male", "female"]),
-  nationalId: z.string().optional().nullable(),
+  nationalId: optionalNationalIdSchema,
   birthDate: z.string().optional().nullable(),
 });
 

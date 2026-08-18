@@ -2,6 +2,10 @@ import { db } from "@/db";
 import { account, family, familyMember, user } from "@/db/schema";
 import { guardApi, isWithinCampScope } from "@/lib/auth/guard";
 import { hashPassword } from "better-auth/crypto";
+import {
+  nationalIdSchema,
+  optionalNationalIdSchema,
+} from "@/lib/validations/national-id";
 import { and, eq, inArray } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -9,7 +13,7 @@ import { z } from "zod";
 const createFamilySchema = z.object({
   campId: z.string(),
   headName: z.string().min(2),
-  nationalId: z.string().min(4),
+  nationalId: nationalIdSchema,
   phone: z.string().optional().nullable(),
   memberCount: z.number().int().min(1, "Member count must be at least 1"),
   notes: z.string().optional().nullable(),
@@ -20,7 +24,7 @@ const createFamilySchema = z.object({
   headPassword: z.string().min(8),
   members: z.array(
     z.object({
-      nationalId: z.string().min(4).optional().nullable(),
+      nationalId: optionalNationalIdSchema,
       name: z.string().min(2),
       relationship: z.string(),
       educationLevel: z.string(),

@@ -1,6 +1,10 @@
 import { db } from "@/db";
 import { family, familyMember } from "@/db/schema";
 import { can, guardApi, isWithinCampScope } from "@/lib/auth/guard";
+import {
+  nationalIdSchema,
+  optionalNationalIdSchema,
+} from "@/lib/validations/national-id";
 import { and, eq, ne } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -8,7 +12,7 @@ import { z } from "zod";
 const updateFamilySchema = z.object({
   campId: z.string().optional(),
   headName: z.string().min(2).optional(),
-  nationalId: z.string().min(4).optional(),
+  nationalId: nationalIdSchema.optional(),
   phone: z.string().optional().nullable(),
   memberCount: z.number().int().min(1).optional(),
   notes: z.string().optional().nullable(),
@@ -17,7 +21,7 @@ const updateFamilySchema = z.object({
   occupation: z.string().optional().nullable(),
   members: z.array(
     z.object({
-      nationalId: z.string().min(4).optional().nullable(),
+      nationalId: optionalNationalIdSchema,
       name: z.string().min(2),
       relationship: z.string(),
       educationLevel: z.string(),

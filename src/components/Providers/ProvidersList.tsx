@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import Link from "next/link";
+import { ContributionStatusBadge } from "@/components/Contributions/status-badges";
 
 type Provider = {
   id: string;
@@ -19,12 +20,31 @@ type Provider = {
   status: string;
 };
 
+type ContributionRow = {
+  id: string;
+  status: string;
+  displayStatus?: string;
+  notes: string | null;
+  submittedAt: string | null;
+  createdAt: string | null;
+  camps?: { id: string; name: string }[];
+};
+
 type SelectUser = {
   id: string;
   name: string;
   email: string;
   role: string;
 };
+
+function formatDate(value: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
 export default function ProvidersList({
   initialProviders,
@@ -42,6 +62,9 @@ export default function ProvidersList({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedProviderForHistory, setSelectedProviderForHistory] = useState<Provider | null>(null);
+  const [history, setHistory] = useState<ContributionRow[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     type: "organization" as "organization" | "independent_initiator",
@@ -52,6 +75,38 @@ export default function ProvidersList({
     notes: "",
     linkedUserId: "",
   });
+
+  // The contribution history is loaded on demand: the directory itself has no
+  // reason to carry every provider's contributions, and the server re-checks
+  // the caller's permission on each request.
+  useEffect(() => {
+    const provider = selectedProviderForHistory;
+    if (!provider) return;
+
+    let cancelled = false;
+    setHistoryLoading(true);
+    setHistoryError(null);
+    setHistory([]);
+
+    fetch(`/api/contributions?providerId=${encodeURIComponent(provider.id)}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        return (await res.json()) as ContributionRow[];
+      })
+      .then((rows) => {
+        if (!cancelled) setHistory(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setHistoryError(t("errFetchFailed"));
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProviderForHistory, t]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -465,7 +520,7 @@ export default function ProvidersList({
           style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
           onClick={(e) => { if (e.target === e.currentTarget) setSelectedProviderForHistory(null); }}
         >
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-gray-dark border border-stroke dark:border-dark-3 space-y-4">
+          <div className="w-full max-w-3xl rounded-xl bg-white p-6 shadow-xl dark:bg-gray-dark border border-stroke dark:border-dark-3 space-y-4">
             <div className="flex items-center justify-between border-b border-stroke pb-3 dark:border-dark-3">
               <h3 className="text-lg font-bold text-dark dark:text-white">
                 {t("contributionHistory")} - {selectedProviderForHistory.name}
@@ -477,9 +532,77 @@ export default function ProvidersList({
                 &times;
               </button>
             </div>
-            <p className="text-sm text-dark-4 dark:text-dark-6 leading-relaxed">
-              {t("placeholderHistoryText")}
-            </p>
+
+            {historyLoading && (
+              <p className="py-6 text-center text-sm text-dark-4 dark:text-dark-6">
+                {t("loading")}
+              </p>
+            )}
+
+            {!historyLoading && historyError && (
+              <p className="py-6 text-center text-sm text-red-500">{historyError}</p>
+            )}
+
+            {!historyLoading && !historyError && history.length === 0 && (
+              <p className="py-6 text-center text-sm text-dark-4 dark:text-dark-6">
+                {t("noContributions")}
+              </p>
+            )}
+
+            {!historyLoading && !historyError && history.length > 0 && (
+              <div className="max-h-[55vh] overflow-auto rounded-lg border border-stroke dark:border-dark-3">
+                <table className="w-full text-start text-sm">
+                  <thead className="sticky top-0 bg-gray-2 dark:bg-dark-2">
+                    <tr>
+                      <th className="whitespace-nowrap px-4 py-3 text-start text-xs font-semibold uppercase text-dark-4 dark:text-dark-6">
+                        {t("submittedAt")}
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-start text-xs font-semibold uppercase text-dark-4 dark:text-dark-6">
+                        {t("camps")}
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-start text-xs font-semibold uppercase text-dark-4 dark:text-dark-6">
+                        {t("status")}
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-3 text-start text-xs font-semibold uppercase text-dark-4 dark:text-dark-6">
+                        {t("notes")}
+                      </th>
+                      <th className="px-4 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stroke dark:divide-dark-3">
+                    {history.map((row) => (
+                      <tr key={row.id}>
+                        <td className="whitespace-nowrap px-4 py-3 text-dark-4 dark:text-dark-6">
+                          {formatDate(row.submittedAt ?? row.createdAt)}
+                        </td>
+                        <td className="px-4 py-3 text-dark-4 dark:text-dark-6">
+                          {row.camps?.length
+                            ? row.camps.map((c) => c.name).join("، ")
+                            : "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3">
+                          <ContributionStatusBadge
+                            status={row.displayStatus ?? row.status}
+                          />
+                        </td>
+                        <td className="max-w-[16rem] truncate px-4 py-3 text-dark-4 dark:text-dark-6">
+                          {row.notes || "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-end">
+                          <Link
+                            href={`/dashboard/contributions/${row.id}`}
+                            className="text-xs font-medium text-primary hover:underline"
+                          >
+                            {t("details")}
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setSelectedProviderForHistory(null)}

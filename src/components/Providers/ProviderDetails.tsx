@@ -4,6 +4,26 @@ import { useLanguage } from "@/lib/i18n/language-context";
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { LineStatusBadge } from "@/components/Contributions/status-badges";
+
+type ContributionLog = {
+  id: string;
+  contributionId: string;
+  date: string | null;
+  aidTypeName: string;
+  campName: string;
+  quantity: number;
+  unit: string;
+  status: string;
+};
+
+type CampCoverage = {
+  id: string;
+  name: string;
+  location: string;
+  status: string;
+  totalAidBatches: number;
+};
 
 type ProviderDetailsProps = {
   provider: {
@@ -18,49 +38,28 @@ type ProviderDetailsProps = {
     linkedUserName: string | null;
     linkedUserEmail: string | null;
   };
+  /** Submitted contribution lines for this provider, newest first. */
+  contributions: ContributionLog[];
+  /** One row per camp this provider has reached. */
+  campsCoverage: CampCoverage[];
 };
 
-export default function ProviderDetails({ provider }: ProviderDetailsProps) {
+function formatDate(value: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+export default function ProviderDetails({
+  provider,
+  contributions,
+  campsCoverage,
+}: ProviderDetailsProps) {
   const { t, language } = useLanguage();
   const [activeTab, setActiveTab] = useState<"info" | "contributions" | "camps">("info");
-
-  // Mock contribution logs to simulate registry for Tab 2
-  const mockContributions = [
-    {
-      id: "1",
-      date: "2026-07-02",
-      type: language === "ar" ? "سلة غذائية متكاملة" : "Food Basket",
-      quantity: "150 سلة",
-      campName: language === "ar" ? "مخيم الشاطئ النموذجي" : "Al-Shati Beach Camp",
-      status: language === "ar" ? "مستلم" : "Received",
-    },
-    {
-      id: "2",
-      date: "2026-07-08",
-      type: language === "ar" ? "توزيع مياه صالحة للشرب" : "Drinking Water",
-      quantity: "5000 لتر",
-      campName: language === "ar" ? "مخيم دير البلح الغربي" : "West Deir al-Balah Camp",
-      status: language === "ar" ? "مستلم" : "Received",
-    }
-  ];
-
-  // Mock camps coverage logs for Tab 3
-  const mockCampsCoverage = [
-    {
-      id: "c1",
-      name: language === "ar" ? "مخيم الشاطئ النموذجي" : "Al-Shati Beach Camp",
-      location: language === "ar" ? "مدينة غزة" : "Gaza City",
-      totalAidBatches: 3,
-      status: language === "ar" ? "نشط" : "Active",
-    },
-    {
-      id: "c2",
-      name: language === "ar" ? "مخيم دير البلح الغربي" : "West Deir al-Balah Camp",
-      location: language === "ar" ? "دير البلح / الوسطى" : "Middle Area",
-      totalAidBatches: 2,
-      status: language === "ar" ? "نشط" : "Active",
-    }
-  ];
 
   return (
     <div className="space-y-6">
@@ -114,7 +113,7 @@ export default function ProviderDetails({ provider }: ProviderDetailsProps) {
             <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
               <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
             </svg>
-            {t("contributionHistory")} ({mockContributions.length})
+            {t("contributionHistory")} ({contributions.length})
           </button>
 
           <button
@@ -217,19 +216,30 @@ export default function ProviderDetails({ provider }: ProviderDetailsProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stroke text-sm text-dark dark:divide-dark-3 dark:text-white">
-                  {mockContributions.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-2/50 dark:hover:bg-dark-2/50">
-                      <td className="py-3 text-start text-xs font-mono">{log.date}</td>
-                      <td className="py-3 text-start font-medium">{log.type}</td>
-                      <td className="py-3 text-start text-xs">{log.campName}</td>
-                      <td className="py-3 text-center font-bold text-primary">{log.quantity}</td>
-                      <td className="py-3 text-end">
-                        <span className="inline-block rounded bg-green-500/10 px-2 py-0.5 text-xs font-semibold text-green-500">
-                          {log.status}
-                        </span>
+                  {contributions.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="py-8 text-center text-sm text-dark-4 dark:text-dark-6"
+                      >
+                        {t("noContributions")}
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    contributions.map((log) => (
+                      <tr key={log.id} className="hover:bg-gray-2/50 dark:hover:bg-dark-2/50">
+                        <td className="py-3 text-start text-xs font-mono">{formatDate(log.date)}</td>
+                        <td className="py-3 text-start font-medium">{log.aidTypeName}</td>
+                        <td className="py-3 text-start text-xs">{log.campName}</td>
+                        <td className="py-3 text-center font-bold text-primary">
+                          {log.quantity} {log.unit}
+                        </td>
+                        <td className="py-3 text-end">
+                          <LineStatusBadge status={log.status} />
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -253,18 +263,38 @@ export default function ProviderDetails({ provider }: ProviderDetailsProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stroke text-sm text-dark dark:divide-dark-3 dark:text-white">
-                  {mockCampsCoverage.map((c) => (
-                    <tr key={c.id} className="hover:bg-gray-2/50 dark:hover:bg-dark-2/50">
-                      <td className="py-3 text-start font-semibold">{c.name}</td>
-                      <td className="py-3 text-start text-xs text-dark-5 dark:text-dark-6">{c.location}</td>
-                      <td className="py-3 text-center font-bold text-primary">{c.totalAidBatches}</td>
-                      <td className="py-3 text-end">
-                        <span className="inline-block rounded bg-green-500/10 px-2 py-0.5 text-xs font-semibold text-green-500">
-                          {c.status}
-                        </span>
+                  {campsCoverage.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="py-8 text-center text-sm text-dark-4 dark:text-dark-6"
+                      >
+                        {t("noContributions")}
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    campsCoverage.map((c) => (
+                      <tr key={c.id} className="hover:bg-gray-2/50 dark:hover:bg-dark-2/50">
+                        <td className="py-3 text-start font-semibold">{c.name}</td>
+                        <td className="py-3 text-start text-xs text-dark-5 dark:text-dark-6">
+                          {t(c.location as never)}
+                        </td>
+                        <td className="py-3 text-center font-bold text-primary">{c.totalAidBatches}</td>
+                        <td className="py-3 text-end">
+                          <span
+                            className={cn(
+                              "inline-block rounded px-2 py-0.5 text-xs font-semibold",
+                              c.status === "active"
+                                ? "bg-green-500/10 text-green-500"
+                                : "bg-red/10 text-red",
+                            )}
+                          >
+                            {t(c.status as never)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
