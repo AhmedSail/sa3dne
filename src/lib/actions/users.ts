@@ -15,10 +15,38 @@ import { eq } from "drizzle-orm";
  * through the dictionary lookup unchanged.
  */
 
-export async function createUserAction(data: { name: string, email: string, password: string, role: string, phone: string | null, campId?: string | null }) {
+export type CreateUserInput = {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+  phone: string | null;
+  campId?: string | null;
+  /** Head-of-household details, required when the role is `beneficiary`. */
+  household?: {
+    nationalId: string;
+    campId: string;
+    memberCount: number;
+    occupation?: string | null;
+  } | null;
+};
+
+export async function createUserAction(data: CreateUserInput) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session || (session.user as any).role !== "admin") {
     return { error: "errNotAllowedToCreateUsers" };
+  }
+
+  // A beneficiary account exists to represent one household, so the two are
+  // created together — an account with no family would have nothing to show
+  // and no way to be counted in population reporting.
+  const isBeneficiary = data.role === "beneficiary";
+  if (isBeneficiary) {
+    if (!data.household?.nationalId?.trim()) return { error: "errNationalIdRequired" };
+    if (!data.household?.campId) return { error: "errCampRequired" };
+    if (!data.household?.memberCount || data.household.memberCount < 1) {
+      return { error: "memberCountValidationError" };
+    }
   }
 
   try {
@@ -28,6 +56,14 @@ export async function createUserAction(data: { name: string, email: string, pass
 
     if (existing) {
       return { error: "emailAlreadyUsed" };
+    }
+
+    if (isBeneficiary) {
+      const duplicate = await db.query.family.findFirst({
+        where: (f, { and, eq }) =>
+          and(eq(f.nationalId, data.household!.nationalId), eq(f.status, "active")),
+      });
+      if (duplicate) return { error: "errNationalIdInUse" };
     }
 
     const userId = crypto.randomUUID();
@@ -40,6 +76,8 @@ export async function createUserAction(data: { name: string, email: string, pass
         email: data.email,
         role: data.role as any,
         phone: data.phone,
+        // A beneficiary's account is scoped to the camp their household is in.
+        campId: isBeneficiary ? data.household!.campId : null,
         emailVerified: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -55,6 +93,23 @@ export async function createUserAction(data: { name: string, email: string, pass
         });
       }
 
+      if (isBeneficiary) {
+        const { family } = await import("@/db/schema/families");
+        await tx.insert(family).values({
+          id: crypto.randomUUID(),
+          userId,
+          campId: data.household!.campId,
+          // The account holder is the head of household by definition, so the
+          // head's name defaults to the name on the account.
+          headName: data.name,
+          nationalId: data.household!.nationalId.trim(),
+          phone: data.phone,
+          memberCount: data.household!.memberCount,
+          occupation: data.household!.occupation || null,
+          status: "active",
+        });
+      }
+
       await tx.insert(account).values({
         id: crypto.randomUUID(),
         accountId: data.email,
@@ -67,6 +122,7 @@ export async function createUserAction(data: { name: string, email: string, pass
     });
 
     revalidatePath("/dashboard/users");
+    revalidatePath("/dashboard/families");
     return { success: true };
   } catch (error: any) {
     console.error("Create user error:", error);

@@ -32,7 +32,37 @@ class DbMock {
       execute: (...args: unknown[]) => this.startChain("execute", args),
       // Transactions run inline against the same mock.
       transaction: async (cb: (tx: unknown) => unknown) => cb(this.db),
+      // Drizzle's relational API. `findFirst`/`findMany` consume one queued
+      // result each, in the same execution order as the chained builders, so a
+      // route may mix the two styles freely.
+      query: this.buildQueryProxy(),
     };
+  }
+
+  /** `db.query.<table>.findFirst()` / `.findMany()` over the same queue. */
+  private buildQueryProxy() {
+    const take = (name: string, method: string, args: unknown[]) => {
+      this.chains.push({ ops: [{ name: `query.${name}.${method}`, args }] });
+      const next = this.results.length > 0 ? this.results.shift() : [];
+      if (next instanceof Error) return Promise.reject(next);
+      if (method === "findFirst") {
+        return Promise.resolve(Array.isArray(next) ? (next[0] ?? undefined) : next);
+      }
+      return Promise.resolve(Array.isArray(next) ? next : []);
+    };
+
+    return new Proxy(
+      {},
+      {
+        get: (_t, table) => {
+          if (typeof table === "symbol") return undefined;
+          return {
+            findFirst: (...args: unknown[]) => take(String(table), "findFirst", args),
+            findMany: (...args: unknown[]) => take(String(table), "findMany", args),
+          };
+        },
+      },
+    );
   }
 
   private startChain(name: string, args: unknown[]) {

@@ -18,12 +18,23 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
     phone: "",
     role: "user" as "user" | "admin" | "camp_manager" | "org_representative" | "independent_initiator" | "beneficiary",
     campId: "",
+    // Household fields, used only when the role is `beneficiary`.
+    nationalId: "",
+    householdCampId: "",
+    memberCount: 1,
+    occupation: "",
   });
+
+  const isBeneficiary = form.role === "beneficiary";
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: name === "memberCount" ? Number(value) : value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,6 +52,20 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
       toast.error(t("passwordMinLengthError"));
       return;
     }
+    if (isBeneficiary) {
+      if (!form.nationalId.trim()) {
+        toast.error(t("errNationalIdRequired"));
+        return;
+      }
+      if (!form.householdCampId) {
+        toast.error(t("errCampRequired"));
+        return;
+      }
+      if (form.memberCount < 1) {
+        toast.error(t("memberCountValidationError"));
+        return;
+      }
+    }
 
     setLoading(true);
 
@@ -51,6 +76,14 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
       role: form.role,
       phone: form.phone || null,
       campId: form.role === "camp_manager" ? (form.campId || null) : null,
+      household: isBeneficiary
+        ? {
+            nationalId: form.nationalId.trim(),
+            campId: form.householdCampId,
+            memberCount: form.memberCount,
+            occupation: form.occupation || null,
+          }
+        : null,
     });
 
     setLoading(false);
@@ -172,6 +205,76 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
                 ))}
               </select>
             </div>
+          )}
+
+          {isBeneficiary && (
+            <fieldset className="space-y-4 rounded-lg border border-stroke p-4 dark:border-dark-3">
+              <legend className="px-2 text-sm font-semibold text-dark dark:text-white">
+                {t("householdSectionTitle")}
+              </legend>
+              <p className="text-xs text-dark-4 dark:text-dark-6">
+                {t("householdSectionHint")}
+              </p>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+                  {t("nationalId")}
+                </label>
+                <input
+                  type="text"
+                  name="nationalId"
+                  value={form.nationalId}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+                  {t("campName")}
+                </label>
+                <select
+                  name="householdCampId"
+                  value={form.householdCampId}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+                >
+                  <option value="">{t("selectCampPlaceholder")}</option>
+                  {camps.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+                  {t("memberCount")}
+                </label>
+                <input
+                  type="number"
+                  name="memberCount"
+                  min={1}
+                  value={form.memberCount}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+                  {t("occupation")}
+                </label>
+                <input
+                  type="text"
+                  name="occupation"
+                  value={form.occupation}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+                />
+              </div>
+            </fieldset>
           )}
 
           <div className="flex gap-4 pt-4">

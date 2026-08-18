@@ -311,7 +311,7 @@ describe("the beneficiary's own household (IT-SCP)", () => {
 
   it("IT-SCP-18: updating before registering a household reports 404, not a silent write", async () => {
     signInAsBeneficiary();
-    dbMock.queue([], []); // no match by national id, none by e-mail either
+    dbMock.queue([]); // no household linked to this account
 
     const response = await UPDATE_OWN_FAMILY(
       new NextRequest("http://localhost:3000/api/my-family", {

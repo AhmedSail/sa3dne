@@ -13,7 +13,7 @@ const Chart = dynamic(() => import("react-apexcharts"), {
 });
 
 export function GovernorateChart({ data }: PropsType) {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
 
   const total = data.reduce((sum, item) => sum + item.amount, 0);
 
@@ -89,6 +89,11 @@ export function GovernorateChart({ data }: PropsType) {
   return (
     <div className="w-full flex justify-center">
       <Chart
+        // ApexCharts fills its label cache once, when the chart is created, and
+        // `updateOptions` merges into it rather than replacing it — so changed
+        // labels never reach the donut or the legend. Keying on the language
+        // rebuilds the chart instead of trying to patch it.
+        key={language}
         options={chartOptions}
         series={data.map((item) => item.amount)}
         type="donut"

@@ -1,6 +1,7 @@
 import { db } from "@/db";
-import { family, familyMember } from "@/db/schema";
+import { account, family, familyMember, user } from "@/db/schema";
 import { guardApi, isWithinCampScope } from "@/lib/auth/guard";
+import { hashPassword } from "better-auth/crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -13,6 +14,10 @@ const createFamilySchema = z.object({
   memberCount: z.number().int().min(1, "Member count must be at least 1"),
   notes: z.string().optional().nullable(),
   occupation: z.string().optional().nullable(),
+  // Credentials for the head of household. Registering a family always creates
+  // the account that owns it, so the household has somebody who can maintain it.
+  headEmail: z.string().email(),
+  headPassword: z.string().min(8),
   members: z.array(
     z.object({
       nationalId: z.string().min(4).optional().nullable(),
@@ -92,9 +97,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const emailTaken = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.email, parsed.data.headEmail))
+      .limit(1);
+
+    if (emailTaken.length > 0) {
+      return NextResponse.json(
+        { error: "This e-mail address is already registered" },
+        { status: 409 },
+      );
+    }
+
     const familyId = crypto.randomUUID();
+    const headUserId = crypto.randomUUID();
+    const hashedPassword = await hashPassword(parsed.data.headPassword);
+
     const newFamily = {
       id: familyId,
+      userId: headUserId,
       campId: parsed.data.campId,
       headName: parsed.data.headName,
       nationalId: parsed.data.nationalId,
@@ -107,7 +129,32 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(),
     };
 
+    // The account and the household are written together: a family with no
+    // account could never be maintained by the people it describes, and a
+    // beneficiary account with no family has nothing to show.
     await db.transaction(async (tx) => {
+      await tx.insert(user).values({
+        id: headUserId,
+        name: parsed.data.headName,
+        email: parsed.data.headEmail,
+        role: "beneficiary",
+        phone: parsed.data.phone ?? null,
+        campId: parsed.data.campId,
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await tx.insert(account).values({
+        id: crypto.randomUUID(),
+        accountId: parsed.data.headEmail,
+        providerId: "credential",
+        userId: headUserId,
+        password: hashedPassword,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
       await tx.insert(family).values(newFamily);
 
       if (parsed.data.members && parsed.data.members.length > 0) {

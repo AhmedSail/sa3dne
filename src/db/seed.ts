@@ -591,7 +591,9 @@ async function main() {
   /* 7. Beneficiary logins                                                   */
   /* ---------------------------------------------------------------------- */
 
-  // The app resolves a beneficiary's family from `<nationalId>@sa3dne.local`.
+  // A beneficiary account and its household are one-to-one: the account is
+  // written onto `family.user_id`, which is how the app resolves "my family".
+  // The e-mail is only a demo credential now, not the link.
   const beneficiaryFamilies = sample(
     activeFamilies.filter((f) => f.campKey !== "shaboura_closed"),
     14,
@@ -602,6 +604,10 @@ async function main() {
   for (const f of beneficiaryFamilies) {
     const id = uid("usr");
     beneficiaryUserByFamily.set(f.id, id);
+
+    const householdRow = familyRows.find((row) => row.id === f.id);
+    if (householdRow) householdRow.userId = id;
+
     const createdAt = daysAgo(randInt(10, 120));
     userRows.push({
       id,
@@ -649,6 +655,36 @@ async function main() {
     createdAt: daysAgo(160),
     updatedAt: daysAgo(35),
   });
+
+  /*
+   * `family.user_id` is a unique foreign key, and the app resolves "my family"
+   * through it. Checking here means a broken link fails the seed loudly instead
+   * of producing demo data where a beneficiary signs in to an empty screen.
+   */
+  const linkedFamilies = familyRows.filter((f) => f.userId);
+  const beneficiaryIds = new Set(
+    userRows.filter((u) => u.role === "beneficiary").map((u) => u.id),
+  );
+
+  if (linkedFamilies.length !== beneficiaryIds.size) {
+    throw new Error(
+      `Seed invariant broken: ${beneficiaryIds.size} beneficiary account(s) but ` +
+        `${linkedFamilies.length} linked household(s).`,
+    );
+  }
+  if (new Set(linkedFamilies.map((f) => f.userId)).size !== linkedFamilies.length) {
+    throw new Error("Seed invariant broken: a user id is linked to more than one family.");
+  }
+  for (const f of linkedFamilies) {
+    if (!beneficiaryIds.has(f.userId as string)) {
+      throw new Error(
+        `Seed invariant broken: family ${f.id} links to a non-beneficiary account.`,
+      );
+    }
+    if (f.status !== "active") {
+      throw new Error(`Seed invariant broken: inactive family ${f.id} owns an account.`);
+    }
+  }
 
   await insertMany("users", s.user, userRows);
   await insertMany("credentials", s.account, accountRows);
@@ -1239,6 +1275,7 @@ async function main() {
   console.log("📊 الأرقام:");
   console.log(`   المخيمات / مراكز الإيواء : ${campRows.length}`);
   console.log(`   العائلات                 : ${familyRows.length} (أفراد: ${totalIndividuals})`);
+  console.log(`   عائلات مرتبطة بحساب      : ${linkedFamilies.length} (علاقة 1-1)`);
   console.log(`   أفراد العائلات المسجلون  : ${memberRows.length}`);
   console.log(`   المستخدمون               : ${userRows.length + 1} (بما فيهم مدير النظام)`);
   console.log(`   الجهات المانحة           : ${providerRows.length}`);

@@ -35,6 +35,8 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
     memberCount: 1,
     occupation: "",
     notes: "",
+    headEmail: "",
+    headPassword: "",
   });
   const [members, setMembers] = useState<MemberInput[]>([]);
 
@@ -69,6 +71,14 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
     }
     if (!form.phone || form.phone.trim().length < 7) {
       toast.error(language === "ar" ? "رقم الجوال مطلوب" : "Phone number is required");
+      return;
+    }
+    if (!form.headEmail.trim()) {
+      toast.error(t("errHeadEmailRequired"));
+      return;
+    }
+    if (form.headPassword.length < 8) {
+      toast.error(t("passwordMinLengthError"));
       return;
     }
     setStep(2);
@@ -112,6 +122,8 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
           memberCount: form.memberCount,
           occupation: form.occupation || null,
           notes: form.notes || null,
+          headEmail: form.headEmail.trim(),
+          headPassword: form.headPassword,
           members: members.map(({ nationalId, name, relationship, educationLevel, gender, birthDate }) => ({
             nationalId: nationalId || null,
             name,
@@ -305,6 +317,46 @@ export default function NewFamilyForm({ camps }: { camps: CampInfo[] }) {
                     className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
                   />
                 </div>
+
+                <fieldset className="space-y-4 rounded-lg border border-stroke p-4 dark:border-dark-3">
+                  <legend className="px-2 text-sm font-semibold text-dark dark:text-white">
+                    {t("headAccountSectionTitle")}
+                  </legend>
+                  <p className="text-xs text-dark-4 dark:text-dark-6">
+                    {t("headAccountSectionHint")}
+                  </p>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+                      {t("headEmailLabel")} *
+                    </label>
+                    <input
+                      type="email"
+                      name="headEmail"
+                      required
+                      value={form.headEmail}
+                      onChange={handleChange}
+                      placeholder="head@example.com"
+                      className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-dark dark:text-white">
+                      {t("headPasswordLabel")} *
+                    </label>
+                    <input
+                      type="password"
+                      name="headPassword"
+                      required
+                      minLength={8}
+                      value={form.headPassword}
+                      onChange={handleChange}
+                      placeholder={t("passwordMinLengthPlaceholder")}
+                      className="w-full rounded-lg border border-stroke bg-transparent px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+                    />
+                  </div>
+                </fieldset>
 
                 <div className="flex gap-3 pt-4 border-t border-stroke dark:border-dark-3">
                   <button

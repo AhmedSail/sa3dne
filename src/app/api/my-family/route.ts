@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { guardApi } from "@/lib/auth/guard";
-import { getOwnFamily, ownNationalId } from "@/lib/families/access";
+import { getOwnFamily } from "@/lib/families/access";
 import { db } from "@/db";
 import { family } from "@/db/schema/families";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 /**
  * The beneficiary self-service household record.
  *
- * The national ID is taken from the acting account, never from the request
- * body: a body-supplied ID would let one beneficiary overwrite another
- * household's record just by knowing their ID number.
+ * The row is always addressed through `family.user_id`, never through a
+ * national ID in the request body: a body-supplied ID would let one beneficiary
+ * overwrite another household's record just by knowing their ID number.
  */
 const myFamilySchema = z.object({
   headName: z.string().min(2),
@@ -23,11 +23,21 @@ const myFamilySchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
+/** Registration also needs the ID the household is registered under. */
+const registerFamilySchema = myFamilySchema.extend({
+  nationalId: z.string().min(4),
+});
+
+/**
+ * Registers the household for an account that has none. Accounts created
+ * through the normal flow already have one, so this only covers a beneficiary
+ * whose record was never linked.
+ */
 export async function POST(req: NextRequest) {
   const guard = await guardApi(req, "family", "manage_own");
   if (!guard.ok) return guard.response;
 
-  const parsed = myFamilySchema.safeParse(await req.json());
+  const parsed = registerFamilySchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Missing required fields", details: parsed.error.flatten() },
@@ -35,36 +45,50 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const fields = {
-    headName: parsed.data.headName,
-    phone: parsed.data.phone || null,
-    memberCount: parsed.data.memberCount,
-    campId: parsed.data.campId,
-    occupation: parsed.data.occupation || null,
-    notes: parsed.data.notes || null,
-  };
-
   try {
-    const existing = await getOwnFamily(guard.actor);
-
-    if (existing) {
-      await db
-        .update(family)
-        .set({ ...fields, updatedAt: new Date() })
-        .where(eq(family.id, existing.id));
-    } else {
-      await db.insert(family).values({
-        id: crypto.randomUUID(),
-        nationalId: ownNationalId(guard.actor),
-        ...fields,
-        status: "active",
-      });
+    // One household per account: registering again would break the 1-1 link.
+    if (await getOwnFamily(guard.actor)) {
+      return NextResponse.json(
+        { error: "A household is already registered for this account" },
+        { status: 409 },
+      );
     }
+
+    const duplicate = await db
+      .select({ id: family.id })
+      .from(family)
+      .where(
+        and(
+          eq(family.nationalId, parsed.data.nationalId),
+          eq(family.status, "active"),
+        ),
+      )
+      .limit(1);
+
+    if (duplicate.length > 0) {
+      return NextResponse.json(
+        { error: "National ID is already in use by another active family" },
+        { status: 409 },
+      );
+    }
+
+    await db.insert(family).values({
+      id: crypto.randomUUID(),
+      userId: guard.actor.id,
+      nationalId: parsed.data.nationalId,
+      headName: parsed.data.headName,
+      phone: parsed.data.phone || null,
+      memberCount: parsed.data.memberCount,
+      campId: parsed.data.campId,
+      occupation: parsed.data.occupation || null,
+      notes: parsed.data.notes || null,
+      status: "active",
+    });
 
     revalidatePath("/dashboard/my-family");
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Error saving own family:", err);
+    console.error("Error registering own family:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

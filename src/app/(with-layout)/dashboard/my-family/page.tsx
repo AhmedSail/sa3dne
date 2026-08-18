@@ -1,5 +1,4 @@
 import { guardPage } from "@/lib/auth/guard";
-import { ownNationalId } from "@/lib/families/access";
 import { db } from "@/db";
 import { family } from "@/db/schema/families";
 import { camp } from "@/db/schema/camps";
@@ -16,10 +15,8 @@ export const dynamic = "force-dynamic";
 export default async function MyFamilyPage() {
   const { actor } = await guardPage("family", "manage_own");
 
-  // The household is identified by the acting account, not by a route or form
-  // value, so this page can only ever show the visitor their own record.
-  const nationalId = ownNationalId(actor);
-
+  // The household is joined to the account by `family.user_id`, so this page
+  // can only ever show the visitor their own record.
   const familyData = await db
     .select({
       id: family.id,
@@ -36,7 +33,7 @@ export default async function MyFamilyPage() {
     })
     .from(family)
     .leftJoin(camp, eq(family.campId, camp.id))
-    .where(eq(family.nationalId, nationalId))
+    .where(eq(family.userId, actor.id))
     .limit(1);
 
   const camps = await db
@@ -65,7 +62,7 @@ export default async function MyFamilyPage() {
 
   return (
     <MyFamilyClient
-      nationalId={nationalId}
+      nationalId={familyData[0]?.nationalId ?? ""}
       familyData={familyData[0] ?? null}
       camps={camps}
       members={members}
