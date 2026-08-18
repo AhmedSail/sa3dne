@@ -7,10 +7,9 @@ import {
   camp,
 } from "@/db/schema";
 import ContributionDetail from "@/components/Contributions/ContributionDetail";
-import { auth } from "@/lib/auth";
+import { can, guardPage } from "@/lib/auth/guard";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
 import { and, eq, ne } from "drizzle-orm";
-import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -20,14 +19,12 @@ export default async function ContributionDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = (await auth.api.getSession({ headers: await headers() })) as any;
-  if (!session) {
-    redirect("/auth/sign-in");
-  }
+  const { actor } = await guardPage("contribution", "read");
 
   // A Camp Manager never browses the contributions register; receipts are
   // confirmed from "Incoming Aid" instead.
-  if (session.user.role === "camp_manager") {
+  const isAdmin = can(actor.role, "provider", "update");
+  if (can(actor.role, "contribution", "receive") && !isAdmin) {
     redirect("/dashboard/incoming-aid");
   }
 
@@ -44,8 +41,7 @@ export default async function ContributionDetailPage({
   }
 
   // Server-side scope: admin can view any, a provider only their own.
-  const isAdmin = session.user.role === "admin";
-  const provider = isAdmin ? null : await getActiveProviderForUser(session.user.id);
+  const provider = isAdmin ? null : await getActiveProviderForUser(actor.id);
   const isOwner = provider?.id === contribution.providerId;
   if (!isAdmin && !isOwner) {
     redirect("/dashboard/contributions");

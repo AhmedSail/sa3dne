@@ -1,10 +1,9 @@
 import { db } from "@/db";
 import { aidProvider, user } from "@/db/schema";
 import ProviderDetails from "@/components/Providers/ProviderDetails";
-import { auth } from "@/lib/auth";
+import { can, guardPage } from "@/lib/auth/guard";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +12,7 @@ export default async function ProviderDetailsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect("/auth/sign-in");
-  }
+  const { actor } = await guardPage("provider", "read");
 
   const { id } = await params;
 
@@ -38,10 +31,13 @@ export default async function ProviderDetailsPage({
     notFound();
   }
 
+  // The linked account's name and e-mail are user data, shown only to a role
+  // that may read user records.
+  const showsLinkedAccount = can(actor.role, "user", "read");
   const formattedProvider = {
     ...providerData[0].provider,
-    linkedUserName: providerData[0].userName,
-    linkedUserEmail: providerData[0].userEmail,
+    linkedUserName: showsLinkedAccount ? providerData[0].userName : null,
+    linkedUserEmail: showsLinkedAccount ? providerData[0].userEmail : null,
   };
 
   return <ProviderDetails provider={formattedProvider} />;

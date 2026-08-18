@@ -2,21 +2,17 @@ import { db } from "@/db";
 import { camp, aidType } from "@/db/schema";
 import { eq, and, ne } from "drizzle-orm";
 import NewContribution from "@/components/Contributions/NewContribution";
-import { auth } from "@/lib/auth";
+import { guardPage } from "@/lib/auth/guard";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewContributionPage() {
-  const session = (await auth.api.getSession({ headers: await headers() })) as any;
-  if (!session) {
-    redirect("/auth/sign-in");
-  }
+  const { actor } = await guardPage("contribution", "read");
 
   // Only a user with an active provider profile may create a contribution.
-  const provider = await getActiveProviderForUser(session.user.id);
+  const provider = await getActiveProviderForUser(actor.id);
   if (!provider) {
     redirect("/dashboard/contributions");
   }

@@ -6,8 +6,7 @@ import {
   aidType,
   camp,
 } from "@/db/schema";
-import { auth } from "@/lib/auth";
-import { getAssignedCampIds } from "@/lib/contributions/access";
+import { isWithinCampScope, guardApi, type CampScope } from "@/lib/auth/guard";
 import {
   allowedActionsFor,
   buildReceiptUpdate,
@@ -18,7 +17,7 @@ import { notifyProviderOfReceipt } from "@/lib/notifications/service";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
-async function loadLineScoped(session: any, lineId: string) {
+async function loadLineScoped(campIds: CampScope, lineId: string) {
   const rows = await db
     .select({
       line: aidContributionLine,
@@ -35,15 +34,8 @@ async function loadLineScoped(session: any, lineId: string) {
   const found = rows[0];
   if (!found) return { notFound: true as const };
 
-  const role = session.user.role;
-  if (role !== "admin" && role !== "camp_manager") {
+  if (!isWithinCampScope(campIds, found.line.campId)) {
     return { forbidden: true as const };
-  }
-  if (role === "camp_manager") {
-    const assigned = await getAssignedCampIds(session.user.id);
-    if (!assigned.includes(found.line.campId)) {
-      return { forbidden: true as const };
-    }
   }
   return { line: found.line, contributionStatus: found.contributionStatus };
 }
@@ -52,13 +44,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ lineId: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // Confirming receipt is a camp-side action gated by `contribution.receive`.
+  const guard = await guardApi(request, "contribution", "receive");
+  if (!guard.ok) return guard.response;
 
   const { lineId } = await params;
-  const scoped = await loadLineScoped(session, lineId);
+  const scoped = await loadLineScoped(guard.campIds, lineId);
   if (scoped.notFound) {
     return NextResponse.json({ error: "Line not found" }, { status: 404 });
   }
@@ -111,13 +102,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ lineId: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // Confirming receipt is a camp-side action gated by `contribution.receive`.
+  const guard = await guardApi(request, "contribution", "receive");
+  if (!guard.ok) return guard.response;
 
   const { lineId } = await params;
-  const scoped = await loadLineScoped(session, lineId);
+  const scoped = await loadLineScoped(guard.campIds, lineId);
   if (scoped.notFound) {
     return NextResponse.json({ error: "Line not found" }, { status: 404 });
   }
@@ -164,7 +154,7 @@ export async function PATCH(
     }
 
     const decision = buildReceiptUpdate(scoped.line, parsed.data, {
-      userId: session.user.id,
+      userId: guard.actor.id,
       now: new Date(),
     });
     if (!decision.ok) {
@@ -185,7 +175,7 @@ export async function PATCH(
 
     // Accountability + notify the owning provider (best-effort).
     await logAudit({
-      userId: session.user.id,
+      userId: guard.actor.id,
       action: AuditAction.RECEIPT_STATUS_CHANGE,
       entityType: "contribution_line",
       entityId: lineId,

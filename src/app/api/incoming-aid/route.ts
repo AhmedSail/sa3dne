@@ -6,8 +6,7 @@ import {
   aidType,
   camp,
 } from "@/db/schema";
-import { auth } from "@/lib/auth";
-import { getAssignedCampIds } from "@/lib/contributions/access";
+import { guardApi } from "@/lib/auth/guard";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -18,24 +17,15 @@ import { NextRequest, NextResponse } from "next/server";
  * never visible here.
  */
 export async function GET(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // Receiving is a camp-side action, so only a role holding
+  // `contribution.receive` ever sees the incoming-aid queue.
+  const guard = await guardApi(request, "contribution", "receive");
+  if (!guard.ok) return guard.response;
 
-  const role = session.user.role;
-  const isAdmin = role === "admin";
-  const isCampManager = role === "camp_manager";
-  if (!isAdmin && !isCampManager) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  let assignedCampIds: string[] = [];
-  if (isCampManager) {
-    assignedCampIds = await getAssignedCampIds(session.user.id);
-    if (assignedCampIds.length === 0) {
-      return NextResponse.json([]);
-    }
+  const assignedCampIds = guard.campIds;
+  const isCampManager = assignedCampIds !== null;
+  if (isCampManager && assignedCampIds.length === 0) {
+    return NextResponse.json([]);
   }
 
   const filters = [

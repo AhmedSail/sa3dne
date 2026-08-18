@@ -53,6 +53,12 @@ const patch = (body: unknown) =>
 
 const fullReceipt = { action: "full", actualReceiptDate: "2026-03-01" };
 
+/**
+ * Result order matters: the guard resolves the caller's camp scope before the
+ * route looks the line up, so a camp-manager case queues the assignment rows
+ * first and the line second.
+ */
+
 beforeEach(() => {
   dbMock.reset();
   authMock.reset();
@@ -99,8 +105,8 @@ describe("authentication and role scoping (IT-RCP)", () => {
     // The core tenancy rule: a manager sees only their own camps.
     authMock.signInAs("camp_manager", "cm-1");
     dbMock.queue(
-      [submittedLine(CAMP_B)], // the line belongs to camp B...
-      [{ campId: CAMP_A }], // ...but this manager is assigned to camp A only
+      [{ campId: CAMP_A }], // this manager is assigned to camp A only...
+      [submittedLine(CAMP_B)], // ...but the line belongs to camp B
     );
 
     const response = await patch(fullReceipt);
@@ -111,7 +117,7 @@ describe("authentication and role scoping (IT-RCP)", () => {
 
   it("IT-RCP-05: a Camp Manager with no camp assignment at all is refused", async () => {
     authMock.signInAs("camp_manager", "cm-unassigned");
-    dbMock.queue([submittedLine(CAMP_A)], []);
+    dbMock.queue([], [submittedLine(CAMP_A)]);
 
     const response = await patch(fullReceipt);
 
@@ -120,7 +126,7 @@ describe("authentication and role scoping (IT-RCP)", () => {
 
   it("IT-RCP-06: a Camp Manager can confirm a line for a camp they are assigned to", async () => {
     authMock.signInAs("camp_manager", "cm-1");
-    dbMock.queue([submittedLine(CAMP_A)], [{ campId: CAMP_A }, { campId: CAMP_B }]);
+    dbMock.queue([{ campId: CAMP_A }, { campId: CAMP_B }], [submittedLine(CAMP_A)]);
 
     const response = await patch(fullReceipt);
 
@@ -182,7 +188,7 @@ describe("confirmation actions persisted (IT-RCP)", () => {
   });
 
   it("IT-RCP-11: a full receipt stores the planned quantity and the confirming user", async () => {
-    dbMock.queue([submittedLine()], [{ campId: CAMP_A }]);
+    dbMock.queue([{ campId: CAMP_A }], [submittedLine()]);
 
     const response = await patch(fullReceipt);
 
@@ -196,7 +202,7 @@ describe("confirmation actions persisted (IT-RCP)", () => {
   });
 
   it("IT-RCP-12: a partial receipt stores the reported quantity and notes", async () => {
-    dbMock.queue([submittedLine()], [{ campId: CAMP_A }]);
+    dbMock.queue([{ campId: CAMP_A }], [submittedLine()]);
 
     const response = await patch({
       action: "partial",
@@ -214,7 +220,7 @@ describe("confirmation actions persisted (IT-RCP)", () => {
   });
 
   it("IT-RCP-13: a partial receipt of the full planned quantity is rejected with 400", async () => {
-    dbMock.queue([submittedLine()], [{ campId: CAMP_A }]);
+    dbMock.queue([{ campId: CAMP_A }], [submittedLine()]);
 
     const response = await patch({
       action: "partial",
@@ -228,7 +234,7 @@ describe("confirmation actions persisted (IT-RCP)", () => {
   });
 
   it("IT-RCP-14: a rejection without a reason is refused with 400", async () => {
-    dbMock.queue([submittedLine()], [{ campId: CAMP_A }]);
+    dbMock.queue([{ campId: CAMP_A }], [submittedLine()]);
 
     const response = await patch({ action: "reject", rejectionReason: "" });
 
@@ -237,7 +243,7 @@ describe("confirmation actions persisted (IT-RCP)", () => {
   });
 
   it("IT-RCP-15: a rejection with a reason is stored and clears the quantity", async () => {
-    dbMock.queue([submittedLine()], [{ campId: CAMP_A }]);
+    dbMock.queue([{ campId: CAMP_A }], [submittedLine()]);
 
     const response = await patch({
       action: "reject",
@@ -253,7 +259,7 @@ describe("confirmation actions persisted (IT-RCP)", () => {
   });
 
   it("IT-RCP-16: 'not received' without notes is refused with 400", async () => {
-    dbMock.queue([submittedLine()], [{ campId: CAMP_A }]);
+    dbMock.queue([{ campId: CAMP_A }], [submittedLine()]);
 
     const response = await patch({ action: "not_received" });
 
@@ -263,7 +269,7 @@ describe("confirmation actions persisted (IT-RCP)", () => {
 
   it("IT-RCP-17: a client cannot inflate a full receipt beyond the planned quantity", async () => {
     // Never trust the client: the quantity is derived on the server.
-    dbMock.queue([submittedLine()], [{ campId: CAMP_A }]);
+    dbMock.queue([{ campId: CAMP_A }], [submittedLine()]);
 
     const response = await patch({
       action: "full",
@@ -278,7 +284,7 @@ describe("confirmation actions persisted (IT-RCP)", () => {
   });
 
   it("IT-RCP-18: an unknown action is refused with 400", async () => {
-    dbMock.queue([submittedLine()], [{ campId: CAMP_A }]);
+    dbMock.queue([{ campId: CAMP_A }], [submittedLine()]);
 
     const response = await patch({ action: "approve_everything" });
 

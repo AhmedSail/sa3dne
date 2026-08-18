@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { guardApiSession } from "@/lib/auth/guard";
 import { markNotificationRead } from "@/lib/notifications/service";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -11,13 +11,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApiSession(request);
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
-  const updated = await markNotificationRead(session.user.id, id);
+  const updated = await markNotificationRead(guard.actor.id, id);
   if (!updated) {
     // Either it does not exist, is already read, or belongs to another user.
     return NextResponse.json({ error: "Notification not found" }, { status: 404 });

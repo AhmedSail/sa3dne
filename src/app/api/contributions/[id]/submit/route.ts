@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { aidContribution, aidContributionLine } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { can, guardApi } from "@/lib/auth/guard";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
 import { AuditAction, logAudit } from "@/lib/audit";
 import { notifyCampManagersOfSubmission } from "@/lib/notifications/service";
@@ -17,10 +17,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "contribution", "read");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
   const [contribution] = await db
@@ -33,8 +31,10 @@ export async function POST(
     return NextResponse.json({ error: "Contribution not found" }, { status: 404 });
   }
 
-  if (session.user.role !== "admin") {
-    const provider = await getActiveProviderForUser(session.user.id);
+  // Only the owning provider may edit a draft; a role that reads every
+  // contribution is not bound to a provider profile.
+  if (!can(guard.actor.role, "contribution", "receive")) {
+    const provider = await getActiveProviderForUser(guard.actor.id);
     if (!provider || provider.id !== contribution.providerId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -74,7 +74,7 @@ export async function POST(
     // Accountability + notify the relevant Camp Managers (best-effort; must not
     // fail the submission itself).
     await logAudit({
-      userId: session.user.id,
+      userId: guard.actor.id,
       action: AuditAction.CONTRIBUTION_SUBMIT,
       entityType: "contribution",
       entityId: id,

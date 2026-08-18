@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { aidProvider, user } from "@/db/schema";
-import { auth } from "@/lib/auth";
-import { and, eq } from "drizzle-orm";
+import { guardApi } from "@/lib/auth/guard";
+import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -16,10 +16,8 @@ const createProviderSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "provider", "read");
+  if (!guard.ok) return guard.response;
 
   // Get active providers
   const providers = await db
@@ -30,13 +28,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (session.user.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const guard = await guardApi(request, "provider", "create");
+  if (!guard.ok) return guard.response;
 
   try {
     const body = await request.json();

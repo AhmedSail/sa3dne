@@ -1,7 +1,7 @@
 import { db } from "@/db";
-import { family, campAssignment, familyMember } from "@/db/schema";
-import { auth } from "@/lib/auth";
-import { and, eq } from "drizzle-orm";
+import { family, familyMember } from "@/db/schema";
+import { guardApi, isWithinCampScope } from "@/lib/auth/guard";
+import { and, eq, inArray } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -26,38 +26,33 @@ const createFamilySchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await guardApi(request, "family", "read", { records: true });
+  if (!guard.ok) return guard.response;
+  const { campIds } = guard;
+
+  // An empty scope means "assigned to no camp" and must return nothing.
+  if (campIds !== null && campIds.length === 0) {
+    return NextResponse.json([]);
   }
 
-  // If camp manager, filter by their assigned camps
-  if (session.user.role === "camp_manager") {
-    const assignedCamps = await db
-      .select({ campId: campAssignment.campId })
-      .from(campAssignment)
-      .where(eq(campAssignment.userId, session.user.id));
-    const campIds = assignedCamps.map((c) => c.campId);
+  // Scope is pushed into the query rather than filtered in JS afterwards, so
+  // out-of-scope rows never leave the database.
+  const families = await db
+    .select()
+    .from(family)
+    .where(
+      campIds === null
+        ? eq(family.status, "active")
+        : and(eq(family.status, "active"), inArray(family.campId, campIds)),
+    );
 
-    if (campIds.length === 0) {
-      return NextResponse.json([]); // No assigned camps
-    }
-
-    const families = await db.select().from(family).where(eq(family.status, "active"));
-    const filtered = families.filter((f) => campIds.includes(f.campId));
-    return NextResponse.json(filtered);
-  }
-
-  // Admin or other roles see all active families
-  const families = await db.select().from(family).where(eq(family.status, "active"));
   return NextResponse.json(families);
 }
 
 export async function POST(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "family", "create");
+  if (!guard.ok) return guard.response;
+  const { campIds } = guard;
 
   try {
     const body = await request.json();
@@ -70,28 +65,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Role-based validation
-    if (session.user.role === "camp_manager") {
-      // Check if camp is assigned to this manager
-      const assignment = await db
-        .select()
-        .from(campAssignment)
-        .where(
-          and(
-            eq(campAssignment.campId, parsed.data.campId),
-            eq(campAssignment.userId, session.user.id)
-          )
-        )
-        .limit(1);
-
-      if (assignment.length === 0) {
-        return NextResponse.json(
-          { error: "You are not authorized to manage this camp" },
-          { status: 403 }
-        );
-      }
-    } else if (session.user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // The role may create families; this checks the specific target camp.
+    if (!isWithinCampScope(campIds, parsed.data.campId)) {
+      return NextResponse.json(
+        { error: "You are not authorized to manage this camp" },
+        { status: 403 },
+      );
     }
 
     // Check if duplicate active nationalId exists

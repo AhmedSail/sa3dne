@@ -19,6 +19,8 @@ describe("access control statements (UT-PRM)", () => {
   it("UT-PRM-01: declares every resource the system authorizes against", () => {
     expect(Object.keys(ac.statements).sort()).toEqual(
       [
+        "aidRequest",
+        "aidType",
         "alert",
         "audit",
         "camp",
@@ -29,6 +31,7 @@ describe("access control statements (UT-PRM)", () => {
         "distribution",
         "family",
         "loginAttempt",
+        "provider",
         "report",
         "resource",
         "role",
@@ -165,7 +168,25 @@ describe("Beneficiary and fallback roles (UT-PRM)", () => {
 
   it("UT-PRM-17: the fallback 'user' role has no more power than a beneficiary", () => {
     // New sign-ups default to `user`; that must not be a privilege escalation.
-    expect(roles.user.statements).toEqual(roles.beneficiary.statements);
+    // A subset, not an equality: `beneficiary` is assigned deliberately and
+    // additionally owns its household record (`family.manage_own`), which an
+    // unreviewed sign-up must not inherit.
+    const beneficiary = roles.beneficiary.statements as Record<string, readonly string[]>;
+    const fallback = roles.user.statements as Record<string, readonly string[]>;
+
+    for (const [resource, actions] of Object.entries(fallback)) {
+      expect(beneficiary[resource], `resource ${resource}`).toBeDefined();
+      for (const action of actions) {
+        expect(beneficiary[resource], `${resource}.${action}`).toContain(action);
+      }
+    }
+  });
+
+  it("UT-PRM-17b: the fallback 'user' role does not own a household record", () => {
+    // `family.manage_own` drives the beneficiary self-service screens, which
+    // resolve the household from the account. A default sign-up has none.
+    expect(can("user", { family: ["manage_own"] })).toBe(false);
+    expect(can("beneficiary", { family: ["manage_own"] })).toBe(true);
   });
 
   it("UT-PRM-18: only the administrator can assign roles", () => {

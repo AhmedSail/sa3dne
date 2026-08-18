@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auditLog, user } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { guardApi } from "@/lib/auth/guard";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -13,14 +13,9 @@ import { NextRequest, NextResponse } from "next/server";
  *   ?before=<iso>      keyset pagination: rows created strictly before this time
  */
 export async function GET(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  // Only the System Administrator can read audit logs.
-  if (session.user.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  // Only the System Administrator holds `audit:read`.
+  const guard = await guardApi(request, "audit", "read");
+  if (!guard.ok) return guard.response;
 
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action");

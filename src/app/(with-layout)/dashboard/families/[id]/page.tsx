@@ -1,10 +1,9 @@
 import { db } from "@/db";
 import { family, familyMember, camp } from "@/db/schema";
 import FamilyDetails from "@/components/Families/FamilyDetails";
-import { auth } from "@/lib/auth";
+import { guardPage, isWithinCampScope } from "@/lib/auth/guard";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -13,16 +12,10 @@ export default async function FamilyDetailsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect("/auth/sign-in");
-  }
+  const { campIds } = await guardPage("family", "read", { records: true });
 
   const { id } = await params;
-  
+
   const familyData = await db
     .select({
       family: family,
@@ -35,6 +28,12 @@ export default async function FamilyDetailsPage({
     .limit(1);
 
   if (familyData.length === 0) {
+    notFound();
+  }
+
+  // A family outside the actor's camp scope is indistinguishable from one that
+  // does not exist, so nothing about it leaks.
+  if (!isWithinCampScope(campIds, familyData[0].family.campId)) {
     notFound();
   }
 

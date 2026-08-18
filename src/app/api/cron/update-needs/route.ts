@@ -5,16 +5,23 @@ import { aidContributionLine } from "@/db/schema/contributions";
 import { AuditAction, logAudit } from "@/lib/audit";
 import { inArray, eq } from "drizzle-orm";
 
-// Optionally protect with a secret key if exposed publicly
-// For local testing and cron services, it's good practice.
-const CRON_SECRET = process.env.CRON_SECRET || "local_dev_secret";
+/**
+ * Recomputes every camp's need level. This endpoint writes to `camp` and to the
+ * audit log, so it is a privileged operation and must never be callable by an
+ * anonymous visitor. It is authenticated with a shared secret rather than a
+ * session because the caller is a scheduler, not a user.
+ */
+const CRON_SECRET = process.env.CRON_SECRET;
 
 export async function GET(req: Request) {
+  if (!CRON_SECRET) {
+    console.error("CRON_SECRET is not set; refusing to run the needs update.");
+    return NextResponse.json({ error: "Not configured" }, { status: 503 });
+  }
+
   const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${CRON_SECRET}` && process.env.NODE_ENV === "production") {
-    // Basic auth check for production
-    // return new NextResponse("Unauthorized", { status: 401 });
-    // Bypassing for now to allow simple execution
+  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {

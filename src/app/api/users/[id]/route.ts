@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { can, guardApi } from "@/lib/auth/guard";
 import { db } from "@/db";
 import { user } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -23,14 +23,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  // Verify the caller is an authenticated admin
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (session.user.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const guard = await guardApi(request, "user", "update");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
   const body = await request.json();
@@ -40,6 +34,15 @@ export async function PUT(
     return NextResponse.json(
       { error: "Invalid data", details: parsed.error.flatten() },
       { status: 400 },
+    );
+  }
+
+  // Changing a role is privilege assignment, a stronger permission than
+  // editing a profile. The whole permission model rests on this check.
+  if (parsed.data.role !== undefined && !can(guard.actor.role, "role", "assign")) {
+    return NextResponse.json(
+      { error: "You are not authorized to assign roles" },
+      { status: 403 },
     );
   }
 

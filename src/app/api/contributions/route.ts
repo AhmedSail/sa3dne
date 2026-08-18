@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { aidContribution, aidProvider } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { can, guardApi } from "@/lib/auth/guard";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
 import { desc, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
@@ -15,12 +15,11 @@ const createContributionSchema = z.object({
  * Admin sees all contributions; a provider sees only their own.
  */
 export async function GET(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "contribution", "read");
+  if (!guard.ok) return guard.response;
 
-  const isAdmin = session.user.role === "admin";
+  // A camp-side role sees every contribution; a provider only its own.
+  const seesAll = can(guard.actor.role, "contribution", "receive");
 
   const rows = await db
     .select({
@@ -65,12 +64,12 @@ export async function GET(request: NextRequest) {
     return { ...row, displayStatus };
   });
 
-  if (isAdmin) {
+  if (seesAll) {
     return NextResponse.json(enrichedRows);
   }
 
   // Provider: scope to own provider profile only.
-  const provider = await getActiveProviderForUser(session.user.id);
+  const provider = await getActiveProviderForUser(guard.actor.id);
   if (!provider) {
     return NextResponse.json([]);
   }
@@ -83,12 +82,12 @@ export async function GET(request: NextRequest) {
  * active provider profile cannot create a contribution.
  */
 export async function POST(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "contribution", "read");
+  if (!guard.ok) return guard.response;
 
-  const provider = await getActiveProviderForUser(session.user.id);
+  // The real gate is the provider profile: a contribution always belongs to a
+  // specific provider, so an account without one has nothing to create it as.
+  const provider = await getActiveProviderForUser(guard.actor.id);
   if (!provider) {
     return NextResponse.json(
       { error: "No active provider profile linked to this account" },
@@ -113,7 +112,7 @@ export async function POST(request: NextRequest) {
       status: "draft" as const,
       notes: parsed.data.notes ?? null,
       submittedAt: null,
-      createdById: session.user.id,
+      createdById: guard.actor.id,
       createdAt: now,
       updatedAt: now,
     };

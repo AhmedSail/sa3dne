@@ -1,10 +1,8 @@
 import { db } from "@/db";
 import { camp, campAssignment, user } from "@/db/schema";
 import CampDetails from "@/components/Camps/CampDetails";
-import { auth } from "@/lib/auth";
-import { getAssignedCampIds } from "@/lib/contributions/access";
+import { can, guardPage, isWithinCampScope } from "@/lib/auth/guard";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -14,22 +12,13 @@ export default async function CampDetailsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = (await auth.api.getSession({
-    headers: await headers(),
-  })) as any;
-
-  if (!session) {
-    redirect("/auth/sign-in");
-  }
+  const { actor, campIds } = await guardPage("camp", "read");
 
   const { id } = await params;
 
   // Server-side scope: a Camp Manager may only open a camp they are assigned to.
-  if (session.user.role === "camp_manager") {
-    const assigned = await getAssignedCampIds(session.user.id);
-    if (!assigned.includes(id)) {
-      redirect("/dashboard/camps");
-    }
+  if (!isWithinCampScope(campIds, id)) {
+    redirect("/dashboard/camps");
   }
 
   const campData = await db.select().from(camp).where(eq(camp.id, id)).limit(1);
@@ -38,16 +27,19 @@ export default async function CampDetailsPage({
     notFound();
   }
 
-  // Fetch assigned managers
-  const assignments = await db
-    .select({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    })
-    .from(campAssignment)
-    .innerJoin(user, eq(campAssignment.userId, user.id))
-    .where(eq(campAssignment.campId, id));
+  // Manager names and e-mail addresses are account data, so they are only
+  // fetched for a role that may read user records.
+  const assignments = can(actor.role, "user", "read")
+    ? await db
+        .select({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        })
+        .from(campAssignment)
+        .innerJoin(user, eq(campAssignment.userId, user.id))
+        .where(eq(campAssignment.campId, id))
+    : [];
 
   const formattedCamp = {
     id: campData[0].id,

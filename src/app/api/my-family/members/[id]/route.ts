@@ -1,46 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/auth";
+import { guardApi } from "@/lib/auth/guard";
+import { getOwnFamily } from "@/lib/families/access";
 import { db } from "@/db";
-import { family, familyMember } from "@/db/schema/families";
+import { familyMember } from "@/db/schema/families";
 import { eq, and } from "drizzle-orm";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
-export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if ((session.user as any).role !== "beneficiary") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+export async function DELETE(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  const guard = await guardApi(req, "family", "manage_own");
+  if (!guard.ok) return guard.response;
+
+  const { id: memberId } = await props.params;
 
   try {
-    // Find the family for this user
-    let userFamily = await db.select().from(family).where(eq(family.nationalId, session.user.email)).limit(1);
-    if (userFamily.length === 0) {
-      const possibleId = session.user.email.replace("@sa3dne.local", "");
-      userFamily = await db.select().from(family).where(eq(family.nationalId, possibleId)).limit(1);
-    }
-    
-    if (userFamily.length === 0) {
+    const userFamily = await getOwnFamily(guard.actor);
+    if (!userFamily) {
       return NextResponse.json({ error: "Family not found" }, { status: 404 });
     }
 
-    // Ensure the member belongs to this family
-    const memberId = params.id;
-    const member = await db.select().from(familyMember).where(and(
-      eq(familyMember.id, memberId),
-      eq(familyMember.familyId, userFamily[0].id)
-    )).limit(1);
+    // Matching on both ids means a member of another household is reported as
+    // missing rather than deleted.
+    const member = await db
+      .select()
+      .from(familyMember)
+      .where(
+        and(
+          eq(familyMember.id, memberId),
+          eq(familyMember.familyId, userFamily.id),
+        ),
+      )
+      .limit(1);
 
     if (member.length === 0) {
-      return NextResponse.json({ error: "Member not found or not authorized to delete" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Member not found or not authorized to delete" },
+        { status: 404 },
+      );
     }
 
     await db.delete(familyMember).where(eq(familyMember.id, memberId));
 
     revalidatePath("/dashboard/my-family");
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    console.error(err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err) {
+    console.error("Error deleting own family member:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

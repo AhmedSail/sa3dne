@@ -1,7 +1,6 @@
 import { db } from "@/db";
 import { camp } from "@/db/schema";
-import { auth } from "@/lib/auth";
-import { getAssignedCampIds } from "@/lib/contributions/access";
+import { guardApi } from "@/lib/auth/guard";
 import { inArray } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -16,36 +15,27 @@ const createCampSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await guardApi(request, "camp", "read");
+  if (!guard.ok) return guard.response;
+  const { campIds } = guard;
+
+  // A Camp Manager only ever gets their assigned camps; an empty scope means
+  // no assignment and must return nothing.
+  if (campIds !== null && campIds.length === 0) {
+    return NextResponse.json([]);
   }
 
-  // Server-side scope: a Camp Manager only ever gets their assigned camps.
-  if (session.user.role === "camp_manager") {
-    const assignedCampIds = await getAssignedCampIds(session.user.id);
-    if (assignedCampIds.length === 0) {
-      return NextResponse.json([]);
-    }
-    const assignedCamps = await db
-      .select()
-      .from(camp)
-      .where(inArray(camp.id, assignedCampIds));
-    return NextResponse.json(assignedCamps);
-  }
+  const camps = await db
+    .select()
+    .from(camp)
+    .where(campIds === null ? undefined : inArray(camp.id, campIds));
 
-  const camps = await db.select().from(camp);
   return NextResponse.json(camps);
 }
 
 export async function POST(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (session.user.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const guard = await guardApi(request, "camp", "create");
+  if (!guard.ok) return guard.response;
 
   try {
     const body = await request.json();

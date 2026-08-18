@@ -1,10 +1,9 @@
-import { auth } from "@/lib/auth/auth";
+import { guardPage } from "@/lib/auth/guard";
+import { ownNationalId } from "@/lib/families/access";
 import { db } from "@/db";
 import { family } from "@/db/schema/families";
 import { camp } from "@/db/schema/camps";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import MyFamilyClient from "./_components/MyFamilyClient";
 import { Metadata } from "next";
 
@@ -15,16 +14,12 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function MyFamilyPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/auth/sign-in");
+  const { actor } = await guardPage("family", "manage_own");
 
-  const role = (session.user as any).role;
-  if (role !== "beneficiary") redirect("/dashboard");
+  // The household is identified by the acting account, not by a route or form
+  // value, so this page can only ever show the visitor their own record.
+  const nationalId = ownNationalId(actor);
 
-  // Extract ID from email (strip @sa3dne.local suffix)
-  const nationalId = session.user.email?.replace("@sa3dne.local", "") ?? "";
-
-  // Look up family by nationalId
   const familyData = await db
     .select({
       id: family.id,

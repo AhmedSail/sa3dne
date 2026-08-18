@@ -1,8 +1,7 @@
 import { db } from "@/db";
 import { camp, campAssignment, user } from "@/db/schema";
-import { auth } from "@/lib/auth";
-import { getAssignedCampIds } from "@/lib/contributions/access";
-import { eq, and } from "drizzle-orm";
+import { can, guardApi, isWithinCampScope } from "@/lib/auth/guard";
+import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -21,19 +20,13 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "camp", "read");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
 
-  // Server-side scope: a Camp Manager may only read a camp they are assigned to.
-  if (session.user.role === "camp_manager") {
-    const assigned = await getAssignedCampIds(session.user.id);
-    if (!assigned.includes(id)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  if (!isWithinCampScope(guard.campIds, id)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const campData = await db.select().from(camp).where(eq(camp.id, id)).limit(1);
@@ -42,20 +35,23 @@ export async function GET(
     return NextResponse.json({ error: "Camp not found" }, { status: 404 });
   }
 
-  // Get assigned managers
-  const assignments = await db
-    .select({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    })
-    .from(campAssignment)
-    .innerJoin(user, eq(campAssignment.userId, user.id))
-    .where(eq(campAssignment.campId, id));
+  // Manager names and e-mail addresses are account data, so they are only
+  // attached for a role that may read user records.
+  const assignedManagers = can(guard.actor.role, "user", "read")
+    ? await db
+        .select({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        })
+        .from(campAssignment)
+        .innerJoin(user, eq(campAssignment.userId, user.id))
+        .where(eq(campAssignment.campId, id))
+    : [];
 
   return NextResponse.json({
     ...campData[0],
-    assignedManagers: assignments,
+    assignedManagers,
   });
 }
 
@@ -63,15 +59,14 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (session.user.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const guard = await guardApi(request, "camp", "update");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
+
+  if (!isWithinCampScope(guard.campIds, id)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const body = await request.json();
@@ -102,8 +97,17 @@ export async function PUT(
 
     await db.update(camp).set(updates).where(eq(camp.id, id));
 
-    // Handle assigned managers if provided
+    // Handle assigned managers if provided. Re-assigning managers is a separate,
+    // stronger permission than editing the camp's own fields — a Camp Manager
+    // must not be able to grant themselves another camp.
     if (parsed.data.assignedManagers !== undefined) {
+      if (!can(guard.actor.role, "camp", "assign_manager")) {
+        return NextResponse.json(
+          { error: "You are not authorized to assign camp managers" },
+          { status: 403 },
+        );
+      }
+
       // 1. Delete old assignments
       await db.delete(campAssignment).where(eq(campAssignment.campId, id));
 
@@ -129,13 +133,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (session.user.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const guard = await guardApi(request, "camp", "delete");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
 

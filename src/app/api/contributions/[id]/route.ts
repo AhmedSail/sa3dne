@@ -6,7 +6,7 @@ import {
   aidType,
   camp,
 } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { can, guardApi, type Actor } from "@/lib/auth/guard";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
@@ -20,7 +20,7 @@ const updateContributionSchema = z.object({
  * Loads a contribution and enforces access: admin can read any, a provider can
  * read only their own. Returns { contribution, provider, forbidden, notFound }.
  */
-async function loadScoped(session: any, id: string) {
+async function loadScoped(actor: Actor, id: string) {
   const rows = await db
     .select()
     .from(aidContribution)
@@ -29,11 +29,12 @@ async function loadScoped(session: any, id: string) {
   const contribution = rows[0];
   if (!contribution) return { notFound: true as const };
 
-  if (session.user.role === "admin") {
+  // A role that may read every contribution is not bound to a provider profile.
+  if (can(actor.role, "contribution", "receive")) {
     return { contribution };
   }
 
-  const provider = await getActiveProviderForUser(session.user.id);
+  const provider = await getActiveProviderForUser(actor.id);
   if (!provider || provider.id !== contribution.providerId) {
     return { forbidden: true as const };
   }
@@ -44,13 +45,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "contribution", "read");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
-  const scoped = await loadScoped(session, id);
+  const scoped = await loadScoped(guard.actor, id);
   if (scoped.notFound) {
     return NextResponse.json({ error: "Contribution not found" }, { status: 404 });
   }
@@ -101,13 +100,11 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "contribution", "read");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
-  const scoped = await loadScoped(session, id);
+  const scoped = await loadScoped(guard.actor, id);
   if (scoped.notFound) {
     return NextResponse.json({ error: "Contribution not found" }, { status: 404 });
   }
@@ -152,13 +149,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "contribution", "read");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
-  const scoped = await loadScoped(session, id);
+  const scoped = await loadScoped(guard.actor, id);
   if (scoped.notFound) {
     return NextResponse.json({ error: "Contribution not found" }, { status: 404 });
   }

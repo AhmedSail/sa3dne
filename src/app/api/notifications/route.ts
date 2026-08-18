@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { guardApiSession } from "@/lib/auth/guard";
 import {
   getUnreadCount,
   listNotifications,
@@ -13,10 +13,8 @@ import { NextRequest, NextResponse } from "next/server";
  *   ?limit=<n>           page size (default 50, max 100)
  */
 export async function GET(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApiSession(request);
+  if (!guard.ok) return guard.response;
 
   const { searchParams } = new URL(request.url);
   const statusParam = searchParams.get("status");
@@ -25,8 +23,8 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 50, 1), 100);
 
   const [items, unreadCount] = await Promise.all([
-    listNotifications(session.user.id, { status, limit }),
-    getUnreadCount(session.user.id),
+    listNotifications(guard.actor.id, { status, limit }),
+    getUnreadCount(guard.actor.id),
   ]);
 
   return NextResponse.json({ items, unreadCount });

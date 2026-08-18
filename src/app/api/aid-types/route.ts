@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { aidType } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { guardApi } from "@/lib/auth/guard";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -12,10 +12,8 @@ const createAidTypeSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "aidType", "read");
+  if (!guard.ok) return guard.response;
 
   // Get active aid types
   const types = await db.select().from(aidType).where(eq(aidType.status, "active"));
@@ -23,13 +21,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (session.user.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const guard = await guardApi(request, "aidType", "create");
+  if (!guard.ok) return guard.response;
 
   try {
     const body = await request.json();

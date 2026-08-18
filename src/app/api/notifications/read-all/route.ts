@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { guardApiSession } from "@/lib/auth/guard";
 import { markAllNotificationsRead } from "@/lib/notifications/service";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -7,11 +7,9 @@ import { NextRequest, NextResponse } from "next/server";
  * Marks all of the authenticated user's unread notifications as read.
  */
 export async function POST(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApiSession(request);
+  if (!guard.ok) return guard.response;
 
-  const count = await markAllNotificationsRead(session.user.id);
+  const count = await markAllNotificationsRead(guard.actor.id);
   return NextResponse.json({ success: true, count });
 }

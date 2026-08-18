@@ -1,27 +1,24 @@
 import { db } from "@/db";
 import { aidContribution, aidProvider } from "@/db/schema";
 import ContributionsList from "@/components/Contributions/ContributionsList";
-import { auth } from "@/lib/auth";
+import { can, guardPage } from "@/lib/auth/guard";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
 import { desc, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContributionsPage() {
-  const session = (await auth.api.getSession({ headers: await headers() })) as any;
-  if (!session) {
-    redirect("/auth/sign-in");
-  }
+  const { actor } = await guardPage("contribution", "read");
 
   // The contributions register belongs to admins and providers. A Camp Manager
   // works from "Incoming Aid", which is scoped to their assigned camps.
-  if (session.user.role === "camp_manager") {
+  const isCampSide = can(actor.role, "contribution", "receive");
+  if (isCampSide && !can(actor.role, "provider", "update")) {
     redirect("/dashboard/incoming-aid");
   }
 
-  const isAdmin = session.user.role === "admin";
+  const isAdmin = can(actor.role, "provider", "update");
 
   const baseQuery = db
     .select({
@@ -43,7 +40,7 @@ export default async function ContributionsPage() {
   if (isAdmin) {
     rows = await baseQuery;
   } else {
-    const provider = await getActiveProviderForUser(session.user.id);
+    const provider = await getActiveProviderForUser(actor.id);
     if (provider) {
       canCreate = true;
       rows = (await baseQuery).filter((r) => r.providerId === provider.id);

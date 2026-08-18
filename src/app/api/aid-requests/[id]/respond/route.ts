@@ -1,8 +1,8 @@
 import { db } from "@/db";
 import { aidRequest, aidRequestResponse, aidContribution, aidContributionLine } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { guardApi } from "@/lib/auth/guard";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
-import { and, eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -19,24 +19,18 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // Only a role holding `aidRequest.respond` may commit to a request; the camp
+  // side raises the need and confirms receipt, but never fulfils it itself.
+  const guard = await guardApi(request, "aidRequest", "respond");
+  if (!guard.ok) return guard.response;
 
-  // Only providers (or admins acting as providers) can respond
-  if (session.user.role === "camp_manager" || session.user.role === "user") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const provider = await getActiveProviderForUser(session.user.id);
-  if (!provider && session.user.role !== "admin") {
-    return NextResponse.json({ error: "No active provider profile found" }, { status: 403 });
-  }
-  
-  // For admin without a provider profile, we shouldn't allow response unless they have one
+  // Committing binds a specific provider profile, so the caller must have one.
+  const provider = await getActiveProviderForUser(guard.actor.id);
   if (!provider) {
-    return NextResponse.json({ error: "Admin must have a provider profile to respond" }, { status: 403 });
+    return NextResponse.json(
+      { error: "No active provider profile linked to this account" },
+      { status: 403 },
+    );
   }
 
   try {
@@ -90,7 +84,7 @@ export async function POST(
         status: "submitted",
         notes: `Automatically generated from Aid Request Response. Notes: ${parsed.data.notes || 'None'}`,
         submittedAt: now,
-        createdById: session.user.id,
+        createdById: guard.actor.id,
         createdAt: now,
         updatedAt: now,
       });
@@ -116,7 +110,7 @@ export async function POST(
         committedQuantity: parsed.data.committedQuantity,
         notes: parsed.data.notes ?? null,
         status: "committed" as const,
-        respondedById: session.user.id,
+        respondedById: guard.actor.id,
         createdAt: now,
         updatedAt: now,
       };

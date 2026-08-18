@@ -1,22 +1,16 @@
 import { db } from "@/db";
 import { aidContribution, aidContributionLine } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { guardApi } from "@/lib/auth/guard";
 import { getActiveProviderForUser } from "@/lib/contributions/access";
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
-    const session = (await auth.api.getSession({
-      headers: await headers(),
-    })) as any;
+    const guard = await guardApi(req, "contribution", "read");
+    if (!guard.ok) return guard.response;
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const provider = await getActiveProviderForUser(session.user.id);
+    const provider = await getActiveProviderForUser(guard.actor.id);
     if (!provider) {
       return NextResponse.json({ error: "No active provider profile found." }, { status: 403 });
     }

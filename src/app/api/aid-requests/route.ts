@@ -1,7 +1,6 @@
 import { db } from "@/db";
 import { aidRequest, camp, aidType } from "@/db/schema";
-import { auth } from "@/lib/auth";
-import { getAssignedCampIds } from "@/lib/contributions/access";
+import { guardApi, isWithinCampScope } from "@/lib/auth/guard";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -22,21 +21,17 @@ const createRequestSchema = z.object({
  * - Camp Manager sees all their camp's requests (including fulfilled/cancelled).
  */
 export async function GET(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "aidRequest", "read");
+  if (!guard.ok) return guard.response;
+  const { campIds } = guard;
 
-  const role = session.user.role;
-  const isCampManager = role === "camp_manager";
-
-  let filters = [];
-  if (isCampManager) {
-    const assignedCampIds = await getAssignedCampIds(session.user.id);
-    if (assignedCampIds.length === 0) {
+  const filters = [];
+  if (campIds !== null) {
+    // Camp-scoped caller: their own camps' requests, in every status.
+    if (campIds.length === 0) {
       return NextResponse.json([]);
     }
-    filters.push(inArray(aidRequest.campId, assignedCampIds));
+    filters.push(inArray(aidRequest.campId, campIds));
   } else {
     // Providers and Admins see open or in_progress requests
     filters.push(inArray(aidRequest.status, ["open", "in_progress"]));
@@ -71,14 +66,8 @@ export async function GET(request: NextRequest) {
  * Camp manager requests aid.
  */
 export async function POST(request: NextRequest) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (session.user.role !== "admin" && session.user.role !== "camp_manager") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const guard = await guardApi(request, "aidRequest", "create");
+  if (!guard.ok) return guard.response;
 
   try {
     const body = await request.json();
@@ -90,14 +79,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (session.user.role === "camp_manager") {
-      const assigned = await getAssignedCampIds(session.user.id);
-      if (!assigned.includes(parsed.data.campId)) {
-        return NextResponse.json(
-          { error: "You are not assigned to this camp" },
-          { status: 403 },
-        );
-      }
+    if (!isWithinCampScope(guard.campIds, parsed.data.campId)) {
+      return NextResponse.json(
+        { error: "You are not assigned to this camp" },
+        { status: 403 },
+      );
     }
 
     // Check if the camp already has an open request today
@@ -130,7 +116,7 @@ export async function POST(request: NextRequest) {
       urgencyLevel: parsed.data.urgencyLevel,
       notes: parsed.data.notes ?? null,
       status: "open" as const,
-      requestedById: session.user.id,
+      requestedById: guard.actor.id,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

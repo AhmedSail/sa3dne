@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { family, campAssignment, familyMember } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { family, familyMember } from "@/db/schema";
+import { can, guardApi, isWithinCampScope } from "@/lib/auth/guard";
 import { and, eq, ne } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -31,10 +31,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "family", "read", { records: true });
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
   const familyData = await db.select().from(family).where(eq(family.id, id)).limit(1);
@@ -43,22 +41,8 @@ export async function GET(
     return NextResponse.json({ error: "Family not found" }, { status: 404 });
   }
 
-  // Check authorization for camp manager
-  if (session.user.role === "camp_manager") {
-    const assignment = await db
-      .select()
-      .from(campAssignment)
-      .where(
-        and(
-          eq(campAssignment.campId, familyData[0].campId),
-          eq(campAssignment.userId, session.user.id)
-        )
-      )
-      .limit(1);
-
-    if (assignment.length === 0) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  if (!isWithinCampScope(guard.campIds, familyData[0].campId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Get family members
@@ -74,10 +58,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "family", "update");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
 
@@ -97,36 +79,30 @@ export async function PUT(
       return NextResponse.json({ error: "Family not found" }, { status: 404 });
     }
 
-    // Role-based validation (for current camp and newly updated camp if changed)
-    const targetCampId = parsed.data.campId ?? currentFamily[0].campId;
-    if (session.user.role === "camp_manager") {
-      // Check if both current camp and target camp are assigned to this manager
-      const checkCamps = [currentFamily[0].campId];
-      if (parsed.data.campId && parsed.data.campId !== currentFamily[0].campId) {
-        checkCamps.push(parsed.data.campId);
-      }
+    // Both the current camp and the target camp must be inside the actor's
+    // scope, otherwise a family could be moved into or out of a camp the actor
+    // does not manage.
+    const checkCamps = [currentFamily[0].campId];
+    const movesCamp =
+      Boolean(parsed.data.campId) && parsed.data.campId !== currentFamily[0].campId;
+    if (movesCamp) {
+      checkCamps.push(parsed.data.campId!);
 
-      for (const cid of checkCamps) {
-        const assignment = await db
-          .select()
-          .from(campAssignment)
-          .where(
-            and(
-              eq(campAssignment.campId, cid),
-              eq(campAssignment.userId, session.user.id)
-            )
-          )
-          .limit(1);
-
-        if (assignment.length === 0) {
-          return NextResponse.json(
-            { error: "You are not authorized to manage families in this camp" },
-            { status: 403 }
-          );
-        }
+      if (!can(guard.actor.role, "family", "transfer")) {
+        return NextResponse.json(
+          { error: "You are not authorized to transfer families between camps" },
+          { status: 403 },
+        );
       }
-    } else if (session.user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    for (const cid of checkCamps) {
+      if (!isWithinCampScope(guard.campIds, cid)) {
+        return NextResponse.json(
+          { error: "You are not authorized to manage families in this camp" },
+          { status: 403 },
+        );
+      }
     }
 
     // Check if duplicate active nationalId exists for another family
@@ -200,10 +176,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const guard = await guardApi(request, "family", "delete");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
 
@@ -213,27 +187,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Family not found" }, { status: 404 });
     }
 
-    // Role-based validation
-    if (session.user.role === "camp_manager") {
-      const assignment = await db
-        .select()
-        .from(campAssignment)
-        .where(
-          and(
-            eq(campAssignment.campId, currentFamily[0].campId),
-            eq(campAssignment.userId, session.user.id)
-          )
-        )
-        .limit(1);
-
-      if (assignment.length === 0) {
-        return NextResponse.json(
-          { error: "You are not authorized to manage families in this camp" },
-          { status: 403 }
-        );
-      }
-    } else if (session.user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!isWithinCampScope(guard.campIds, currentFamily[0].campId)) {
+      return NextResponse.json(
+        { error: "You are not authorized to manage families in this camp" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json().catch(() => ({}));

@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { aidType } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { guardApi } from "@/lib/auth/guard";
 import { and, eq, ne } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -16,13 +16,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (session.user.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const guard = await guardApi(request, "aidType", "update");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
 
@@ -84,13 +79,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = (await auth.api.getSession({ headers: request.headers })) as any;
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (session.user.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const guard = await guardApi(request, "aidType", "delete");
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
 
