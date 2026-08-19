@@ -192,6 +192,8 @@ export default function NewUserForm({ camps = [] }: { camps?: {id: string, name:
               <option value="user">{t("roleUser")}</option>
               <option value="beneficiary">{t("roleBeneficiary")}</option>
               <option value="camp_manager">{t("roleCampManager")}</option>
+              <option value="org_representative">{t("roleOrgRepresentative")}</option>
+              <option value="independent_initiator">{t("roleIndependentInitiator")}</option>
               <option value="admin">{t("roleAdmin")}</option>
             </select>
           </div>
